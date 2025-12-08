@@ -1,4 +1,4 @@
-<title>@dispatchFilter('page_title', $sitename)</title>
+<title>@dispatchFilter('page_title', 'PearLog')</title>
 
 <meta name="requestId" content="{{ \Illuminate\Support\Str::random(4) }}">
 <meta name="description" content="{{ $sitename }}">
