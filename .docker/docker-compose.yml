@@ -7,7 +7,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     restart: unless-stopped
-    env_file: ./.env                                        # Environment file with settings
+    env_file: ./config/.env                                        # Environment file with settings
     networks:
       - leantime-net
     command: --character-set-server=UTF8MB4 --collation-server=UTF8MB4_unicode_ci
@@ -20,7 +20,7 @@ services:
   leantime:
     image: leantime/leantime:3.4.12
     restart: unless-stopped
-    env_file: ./.env                                        # Environment file with settings
+    env_file: ./config/.env                                        # Environment file with settings
     # Add security options
     security_opt:
       - no-new-privileges:true
