@@ -97,7 +97,7 @@ leantime.ticketsController = (function () {
 
             $input.on('input', function () {
                 var searchTerm = jQuery(this).val();
-                
+
                 // Apply client-side filter immediately for better UX
                 applyKanbanSearchFilter(searchTerm);
 
@@ -131,29 +131,29 @@ leantime.ticketsController = (function () {
             // Function to update URL with search term
             function updateUrlWithSearchTerm(term) {
                 var url = new URL(window.location.href);
-                
+
                 if (term && term.trim() !== '') {
                     url.searchParams.set('term', term.trim());
                     url.searchParams.set('search', 'true');
                 } else {
                     url.searchParams.delete('term');
                     // Only remove 'search' if no other search params exist
-                    var hasOtherParams = url.searchParams.has('users') || 
-                                        url.searchParams.has('milestone') || 
-                                        url.searchParams.has('type') || 
-                                        url.searchParams.has('priority') || 
+                    var hasOtherParams = url.searchParams.has('users') ||
+                                        url.searchParams.has('milestone') ||
+                                        url.searchParams.has('type') ||
+                                        url.searchParams.has('priority') ||
                                         url.searchParams.has('status');
                     if (!hasOtherParams) {
                         url.searchParams.delete('search');
                     }
                 }
-                
+
                 // Update URL without page reload, then reload to apply server-side filter
                 window.location.href = url.toString();
             }
         });
         */
-        
+
         jQuery(document).ready(function () {
             if (window.leantime && leantime.kanbanSearch && typeof leantime.kanbanSearch.init === 'function') {
                 leantime.kanbanSearch.init({
@@ -1431,6 +1431,8 @@ leantime.ticketsController = (function () {
                         charset: 'utf-8',
                         bom: true,
                         exportOptions: {
+                            orthogonal: 'export',
+                            columns: ':not(:last-child)',
                             format: {
                                 body: function ( data, row, column, node ) {
 
@@ -1600,6 +1602,8 @@ leantime.ticketsController = (function () {
                         charset: 'utf-8',
                         bom: true,
                         exportOptions: {
+                            orthogonal: 'export',
+                            columns: ':not(:last-child)',
                             format: {
                                 body: function ( data, row, column, node ) {
 
