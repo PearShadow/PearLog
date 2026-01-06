@@ -68,7 +68,7 @@ class Project
         // Map array data to object properties
         $this->id = $data['id'] ?? 0;
         $this->name = $data['name'] ?? '';
-        $this->projectKey = $data['projectKey'] ?? $data['project_key'] ?? null;
+        $this->projectKey = $data['projectKey']  ?? null;
         $this->clientId = $data['clientId'] ?? null;
         $this->projectId = $data['projectId'] ?? $this->id;
 

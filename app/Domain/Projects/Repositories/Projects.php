@@ -419,8 +419,7 @@ class Projects
         $query = "SELECT
 					zp_projects.id,
 					zp_projects.name,
-					zp_projects.project_key,
-					zp_projects.project_key AS projectKey,
+					zp_projects.projectKey,
 					zp_projects.clientId,
 					zp_projects.details,
 					zp_projects.state,
@@ -575,7 +574,7 @@ class Projects
 
         $query = 'INSERT INTO `zp_projects` (
 				            `name`,
-                           `project_key`,
+                           `projectKey`,
                            `details`,
                            `clientId`,
                            `hourBudget`,
@@ -609,7 +608,11 @@ class Projects
         $stmn = $this->db->database->prepare($query);
 
         $stmn->bindValue('name', $values['name'], PDO::PARAM_STR);
-        $stmn->bindValue('projectKey', $values['projectKey'] ?? $values['project_key'] ?? null, PDO::PARAM_STR);
+        
+        // Handle projectKey - use PARAM_NULL if null, otherwise PARAM_STR
+        $projectKeyValue = $values['projectKey'] ?? null;
+        $stmn->bindValue('projectKey', $projectKeyValue, $projectKeyValue === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        
         $stmn->bindValue('details', $values['details'], PDO::PARAM_STR);
         $stmn->bindValue('clientId', $values['clientId'], PDO::PARAM_STR);
         $stmn->bindValue('hourBudget', $values['hourBudget'], PDO::PARAM_STR);
@@ -665,7 +668,7 @@ class Projects
 
         $query = 'UPDATE zp_projects SET
 				name = :name,
-				project_key = :projectKey,
+				projectKey = :projectKey,
 				details = :details,
 				clientId = :clientId,
 				state = :state,
@@ -685,7 +688,11 @@ class Projects
         $stmn = $this->db->database->prepare($query);
 
         $stmn->bindValue('name', $values['name'], PDO::PARAM_STR);
-        $stmn->bindValue('projectKey', $values['projectKey'] ?? $values['project_key'] ?? null, PDO::PARAM_STR);
+        
+        // Handle projectKey - use PARAM_NULL if null, otherwise PARAM_STR
+        $projectKeyValue = $values['projectKey'] ?? null;
+        $stmn->bindValue('projectKey', $projectKeyValue, $projectKeyValue === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        
         $stmn->bindValue('details', $values['details'] ?? '', PDO::PARAM_STR);
         $stmn->bindValue('clientId', $values['clientId'] ?? '', PDO::PARAM_STR);
         $stmn->bindValue('state', $values['state'] ?? '', PDO::PARAM_STR);
@@ -1143,7 +1150,7 @@ class Projects
      */
     public function isProjectKeyTaken(string $key, int $excludeProjectId = 0): bool
     {
-        $query = 'SELECT id FROM zp_projects WHERE project_key = :key AND id != :excludeId LIMIT 1';
+        $query = 'SELECT id FROM zp_projects WHERE projectKey = :key AND id != :excludeId LIMIT 1';
 
         $stmn = $this->db->database->prepare($query);
         $stmn->bindValue(':key', $key, PDO::PARAM_STR);

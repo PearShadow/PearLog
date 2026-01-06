@@ -13,7 +13,7 @@ $menuTypes = $tpl->get('menuTypes');
 ?>
 
 
-<form action="" method="post" class="stdform">
+<form action="" method="post" class="stdform" id="projectDetailsForm">
 
     <div class="row">
 
@@ -30,14 +30,37 @@ $menuTypes = $tpl->get('menuTypes');
                     <div class="form-group">
                         <label for="projectKey" style="font-weight: 600; display: block; margin-bottom: 5px;">
                             <?php echo $tpl->__('label.project_key'); ?>
-                            <span style="font-weight: normal; font-size: 0.9em; color: #666;">(2-10 characters, letters and numbers only)</span>
                         </label>
+                        
+                        <?php if (empty($project['projectKey'])): ?>
+                            <div id="projectKeyStatus" style="margin-bottom: 10px;">
+                                <button type="button" id="enableCustomKey" class="btn btn-sm" style="padding: 2px 8px;">
+                                    <i class="fa fa-edit"></i> <?php echo $tpl->__('buttons.enable_custom_key'); ?>
+                                </button>
+                            </div>
+                            <div id="projectKeyInputContainer" style="display: none;">
+                                <input type="text" name="projectKey" id="projectKey" maxlength="10" style="width:150px; text-transform: uppercase;" 
+                                       value="" 
+                                       placeholder="<?= $tpl->__('input.placeholders.enter_project_key') ?>"/>
+                                <button type="button" id="cancelCustomKey" class="btn btn-sm btn-secondary" style="margin-left: 5px; padding: 2px 8px;">
+                                    <?php echo $tpl->__('buttons.cancel'); ?>
+                                </button>
+                                <small style="display: block; margin-top: 5px; color: #666;">
+                                    <?php echo $tpl->__('label.project_key_description'); ?>
+                                </small>
+                            </div>
+                        <?php else: ?>
                         <input type="text" name="projectKey" id="projectKey" maxlength="10" style="width:150px; text-transform: uppercase;" 
-                               value="<?php $tpl->e($project['projectKey'] ?? $project['project_key'] ?? '') ?>" 
+                                   value="<?php $tpl->e($project['projectKey'] ?? '') ?>" 
                                placeholder="<?= $tpl->__('input.placeholders.enter_project_key') ?>"/>
+                            <button type="button" id="removeCustomKeyBtn" class="btn btn-sm btn-secondary" style="margin-left: 5px; padding: 2px 8px;" title="<?php echo $tpl->__('tooltip.revert_to_hash_key'); ?>">
+                                <i class="fa fa-times"></i> <?php echo $tpl->__('buttons.remove_custom_key'); ?>
+                            </button>
+                            <input type="hidden" name="removeProjectKey" id="removeProjectKeyFlag" value="0"/>
                         <small style="display: block; margin-top: 5px; color: #666;">
                             <?php echo $tpl->__('label.project_key_description'); ?>
                         </small>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -51,7 +74,7 @@ $menuTypes = $tpl->get('menuTypes');
                 </div>
             </div>
             <script>
-            // Force uppercase for project key
+            // Project key management
             jQuery(document).ready(function() {
                 var projectKeyInput = jQuery('#projectKey');
                 
@@ -59,6 +82,31 @@ $menuTypes = $tpl->get('menuTypes');
                 projectKeyInput.on('input', function() {
                     var val = jQuery(this).val();
                     jQuery(this).val(val.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+                });
+                
+                // Enable custom key button
+                jQuery('#enableCustomKey').on('click', function() {
+                    jQuery('#projectKeyStatus').hide();
+                    jQuery('#projectKeyInputContainer').show();
+                    projectKeyInput.focus();
+                });
+                
+                // Cancel custom key button
+                jQuery('#cancelCustomKey').on('click', function() {
+                    jQuery('#projectKeyInputContainer').hide();
+                    jQuery('#projectKeyStatus').show();
+                    projectKeyInput.val('');
+                });
+                
+                // Remove custom key button handler
+                jQuery('#removeCustomKeyBtn').on('click', function() {
+                    if (confirm('<?php echo addslashes($tpl->__('text.confirm_remove_custom_key')); ?>')) {
+                        // Clear the input value and set removal flag
+                        jQuery('#projectKey').val('');
+                        jQuery('#removeProjectKeyFlag').val('1');
+                        // Submit the form
+                        jQuery('#projectDetailsForm').submit();
+                    }
                 });
             });
             </script>

@@ -475,7 +475,7 @@ class Install
                 CREATE TABLE `zp_projects` (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
                     `name` varchar(100) DEFAULT NULL,
-                    `project_key` varchar(10) DEFAULT NULL,
+                    `projectKey` varchar(10) DEFAULT NULL,
                     `clientId` int(100) DEFAULT NULL,
                     `details` text,
                     `state` int(2) DEFAULT NULL,
@@ -494,7 +494,7 @@ class Install
                     `cover` MEDIUMTEXT NULL,
                     `sortIndex` INT(11) NULL,
                     PRIMARY KEY (`id`),
-                    UNIQUE KEY `idx_project_key` (`project_key`)
+                    UNIQUE KEY `idx_project_key` (`projectKey`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
                 CREATE TABLE `zp_punch_clock` (
@@ -2084,16 +2084,16 @@ class Install
     }
 
     /**
-     * Add project_key column to zp_projects table and generate keys for existing projects
+     * Add projectKey column to zp_projects table and generate keys for existing projects
      */
     public function update_sql_30410(): bool|array
     {
         $errors = [];
 
-        // Step 1: Add the project_key column to zp_projects table
+        // Step 1: Add the projectKey column to zp_projects table
         $sql = [
-            'ALTER TABLE `zp_projects` ADD COLUMN `project_key` VARCHAR(10) NULL DEFAULT NULL AFTER `name`',
-            'ALTER TABLE `zp_projects` ADD UNIQUE INDEX `idx_project_key` (`project_key`)',
+            'ALTER TABLE `zp_projects` ADD COLUMN `projectKey` VARCHAR(10) NULL DEFAULT NULL AFTER `name`',
+            'ALTER TABLE `zp_projects` ADD UNIQUE INDEX `idx_project_key` (`projectKey`)',
         ];
 
         foreach ($sql as $statement) {
@@ -2113,14 +2113,14 @@ class Install
         // Step 2: Generate project keys for existing projects
         try {
             // Get all projects that don't have a key yet
-            $projects = $this->connection->select('SELECT id, name FROM zp_projects WHERE project_key IS NULL OR project_key = ""');
+            $projects = $this->connection->select('SELECT id, name FROM zp_projects WHERE projectKey IS NULL OR projectKey = ""');
 
             foreach ($projects as $project) {
                 $projectKey = $this->generateProjectKey($project->name, $project->id);
 
                 // Update the project with the generated key
                 $this->connection->update(
-                    'UPDATE zp_projects SET project_key = ? WHERE id = ?',
+                    'UPDATE zp_projects SET projectKey = ? WHERE id = ?',
                     [$projectKey, $project->id]
                 );
             }
@@ -2194,7 +2194,7 @@ class Install
     {
         try {
             $result = $this->connection->selectOne(
-                'SELECT id FROM zp_projects WHERE project_key = ? AND id != ?',
+                'SELECT id FROM zp_projects WHERE projectKey = ? AND id != ?',
                 [$key, $excludeProjectId]
             );
 

@@ -225,14 +225,16 @@ class ShowProject extends Controller
             }
 
             // save changed project data
-            if (isset($_POST['save']) === true) {
-                // Handle project key
-                $projectKey = $_POST['projectKey'] ?? '';
-                if (empty($projectKey) && ! empty($_POST['name'])) {
-                    $projectKey = $this->projectService->generateProjectKey($_POST['name'], $id);
+            if (isset($_POST['save']) === true || isset($_POST['removeProjectKey'])) {
+                // Handle project key - only if explicitly provided by admin/owner
+                if (isset($_POST['removeProjectKey']) && $_POST['removeProjectKey'] === '1') {
+                    $projectKey = null;
                 } else {
-                    // Normalize user input to uppercase
-                    $projectKey = strtoupper(trim($projectKey));
+                    $projectKey = isset($_POST['projectKey']) ? strtoupper(trim($_POST['projectKey'])) : $project['projectKey'];
+
+                    if ($projectKey === '') {
+                        $projectKey = null;
+                    }
                 }
 
                 // bind Post Data into one array

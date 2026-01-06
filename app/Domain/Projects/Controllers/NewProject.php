@@ -94,18 +94,9 @@ class NewProject extends Controller
 
             $mailer = app()->make(MailerCore::class);
 
-            // Generate project key from name if not provided or use the user-provided one
-            $projectKey = $_POST['projectKey'] ?? '';
-            if (empty($projectKey) && ! empty($_POST['name'])) {
-                $projectKey = $this->projectService->generateProjectKey($_POST['name']);
-            } else {
-                // Normalize user input to uppercase
-                $projectKey = strtoupper(trim($projectKey));
-            }
-
             $values = [
                 'name' => $_POST['name'] ?? '',
-                'projectKey' => $projectKey,
+                'projectKey' => null,
                 'details' => $_POST['details'] ?? '',
                 'clientId' => $_POST['clientId'] ?? 0,
                 'hourBudget' => $hourBudget,
@@ -125,22 +116,6 @@ class NewProject extends Controller
             } elseif ($values['clientId'] === '') {
                 $this->tpl->setNotification($this->language->__('notification.no_client'), 'error');
             } else {
-                // Validate project key if provided
-                if (! empty($projectKey)) {
-                    $validation = $this->projectService->validateProjectKey($projectKey, 0);
-                    if (! $validation['valid']) {
-                        $this->tpl->setNotification($validation['message'], 'error');
-                        $this->tpl->assign('project', $values);
-                        $this->tpl->assign('menuTypes', $this->menuRepo->getMenuTypes());
-                        $this->tpl->assign('availableUsers', $this->userRepo->getAll());
-                        $this->tpl->assign('clients', $this->clientsRepo->getAll());
-                        $this->tpl->assign('projectTypes', $this->projectService->getProjectTypes());
-                        $this->tpl->assign('info', $msgKey);
-
-                        return $this->tpl->display('projects.newProject');
-                    }
-                }
-
                 $projectName = $values['name'];
                 $id = $this->projectRepo->addProject($values);
                 $this->projectService->changeCurrentSessionProject($id);
