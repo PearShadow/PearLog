@@ -58,7 +58,6 @@ class Timesheets extends Repository
                     zp_timesheets.kind,
                     zp_projects.name,
                     zp_projects.id AS projectId,
-                    zp_projects.projectKey AS projectKey,
                     zp_clients.name AS clientName,
                     zp_clients.id AS clientId,
                     zp_timesheets.invoicedEmpl,
@@ -197,7 +196,6 @@ class Timesheets extends Repository
                         zp_timesheets.kind,
                         zp_projects.name,
                         zp_projects.id AS projectId,
-                        zp_projects.projectKey AS projectKey,
                         zp_clients.name AS clientName,
                         zp_clients.id AS clientId,
                         zp_timesheets.invoicedEmpl,
@@ -313,7 +311,6 @@ class Timesheets extends Repository
             zp_tickets.planHours,
             zp_projects.name,
             zp_projects.id AS projectId,
-            zp_projects.projectKey AS projectKey,
             zp_projects.clientId AS clientId,
             zp_clients.name AS clientName
         FROM

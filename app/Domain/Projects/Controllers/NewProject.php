@@ -63,7 +63,6 @@ class NewProject extends Controller
         $values = [
             'id' => '',
             'name' => '',
-            'projectKey' => '',
             'details' => '',
             'clientId' => '',
             'hourBudget' => '',
@@ -96,7 +95,6 @@ class NewProject extends Controller
 
             $values = [
                 'name' => $_POST['name'] ?? '',
-                'projectKey' => null,
                 'details' => $_POST['details'] ?? '',
                 'clientId' => $_POST['clientId'] ?? 0,
                 'hourBudget' => $hourBudget,
