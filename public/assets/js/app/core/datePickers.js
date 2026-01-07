@@ -83,8 +83,23 @@ leantime.dateController = (function () {
         );
     }
     var initModernDateRangePicker = function (fromElement, toElement, minDistance) {
-        var startDate = moment().startOf('month');
-        var endDate   = moment().endOf('month');
+        var existingFromValue = jQuery(fromElement).val();
+        var existingToValue = jQuery(toElement).val();
+
+        var startDate
+        var endDate
+
+        if (existingFromValue && existingFromValue.trim() !== '') {
+            startDate = moment(existingFromValue, 'YYYY-MM-DD');
+        } else {
+            startDate = moment().startOf('month');
+        }
+
+        if (existingToValue && existingToValue.trim() !== '') {
+            endDate = moment(existingToValue, 'YYYY-MM-DD');
+        } else {
+            endDate = moment().endOf('month');
+        }
 
         jQuery(fromElement).daterangepicker({
             autoUpdateInput: false,
@@ -111,8 +126,15 @@ leantime.dateController = (function () {
             }
         });
 
-        jQuery(fromElement).val(startDate.format('YYYY-MM-DD'));
-        jQuery(toElement).val(endDate.format('YYYY-MM-DD'));
+        if (!existingFromValue || existingFromValue.trim() === '') {
+            jQuery(fromElement).val(startDate.format('YYYY-MM-DD'));
+        }
+        if (!existingToValue || existingToValue.trim() === '') {
+            jQuery(toElement).val(endDate.format('YYYY-MM-DD'));
+        }
+
+        jQuery(fromElement).data('daterangepicker').setStartDate(startDate);
+        jQuery(fromElement).data('daterangepicker').setEndDate(endDate);
 
         jQuery(fromElement).on('apply.daterangepicker', function(ev, picker) {
             jQuery(fromElement).val(picker.startDate.format('YYYY-MM-DD'));
