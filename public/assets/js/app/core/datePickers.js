@@ -83,8 +83,12 @@ leantime.dateController = (function () {
         );
     }
     var initModernDateRangePicker = function (fromElement, toElement, minDistance) {
-        var startDate = moment().startOf('month');
-        var endDate   = moment().endOf('month');
+    var fromValue = jQuery(fromElement).val();
+    var toValue = jQuery(toElement).val();
+    
+    var startDate = fromValue ? moment(fromValue, 'MM/DD/YYYY') : moment().startOf('month');
+    var endDate = toValue ? moment(toValue, 'MM/DD/YYYY') : moment().endOf('month');
+    
 
         jQuery(fromElement).daterangepicker({
             autoUpdateInput: false,
@@ -95,7 +99,7 @@ leantime.dateController = (function () {
             minDate: moment().subtract(1, 'years'),
             maxDate: moment().add(1, 'years'),
             locale: {
-                format: 'YYYY-MM-DD',
+                format: 'MM/DD/YYYY',
                 applyLabel: 'Apply',
                 cancelLabel: 'Cancel',
                 fromLabel: 'From',
@@ -104,7 +108,7 @@ leantime.dateController = (function () {
                 firstDay: 1
             },
             ranges: {
-                'Today': [moment(), moment()],
+                'Today': [moment().startOf('day'), moment().endOf('day')],
                 'This Week': [moment().startOf('week'), moment().endOf('week')],
                 'This Month': [moment().startOf('month'), moment().endOf('month')],
                 'Last 7 Days': [moment().subtract(6, 'days'), moment()]
