@@ -148,16 +148,12 @@ $hoursFormat = session('usersettings.hours_format', 'decimal');
 <div class="maincontent">
     <div class="maincontentinner">
         <div style="float:left;">
-        <button class="dt-button" onclick="exportToSlack()" style = "padding: 4px 14px;">Export to Slack</button>
-</div>
-    </form>
-    <script>
-        function exportToSlack() {
-            fetch('<?= BASE_URL?>/timesheets/slackMonthlyReportController/sendCsvFromUsersProfilesWhichHaveTickboxTrue', {
-                method: 'POST'
-            });
-        }
-</script>
+            <?php echo $tpl->displayNotification() ?>
+            <form id="exportSlackForm" action="<?= BASE_URL ?>/timesheets/slackMonthlyReportController/sendCsvFromUsersProfilesWhichHaveTickboxTrue" method="post" style="display:none;"></form>
+                <button class="dt-button" onclick="document.getElementById('exportSlackForm').submit();" style="padding: 4px 14px;">
+                Export to Slack
+            </button>
+        </div>  
         <form action="<?php echo BASE_URL ?>/timesheets/showAll" method="post" id="form" name="form">
             <div class="pull-right">
                 <div id="tableButtons" style="display:inline-block; vertical-align: middle;"></div>
