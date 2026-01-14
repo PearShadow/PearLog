@@ -52,6 +52,10 @@ class ShowMy extends Controller
      */
     public function run(): Response
     {
+        // Increase execution time for users with many tickets/projects to prevent 502 errors
+        set_time_limit(300); // 5 minutes
+        ini_set('max_execution_time', '300');
+
         Auth::authOrRedirect([Roles::$owner, Roles::$admin, Roles::$manager, Roles::$editor], true);
 
         // Use UTC here as all data stored in the database should be UTC (start in user's timezone and convert to UTC).
@@ -92,7 +96,7 @@ class ShowMy extends Controller
         ));
         $this->tpl->assign('allTickets', $this->tickets->getUsersTickets(
             id: session('userdata.id'),
-            limit: -1
+            limit: 10000
         ));
         $this->tpl->assign('allTimesheets', $myTimesheets);
 

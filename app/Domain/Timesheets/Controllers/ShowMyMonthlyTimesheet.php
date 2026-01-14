@@ -2,6 +2,7 @@
 
 namespace Leantime\Domain\Timesheets\Controllers;
 
+use Illuminate\Support\Facades\Log;
 use Leantime\Core\Controller\Controller;
 use Leantime\Domain\Auth\Models\Roles;
 use Leantime\Domain\Auth\Services\Auth;
@@ -40,6 +41,10 @@ class ShowMyMonthlyTimesheet extends Controller
 
     public function run(): Response
     {
+        // Increase execution time for users with many tickets/projects to prevent 502 errors
+        set_time_limit(300); // 5 minutes
+        ini_set('max_execution_time', '300');
+
         Auth::authOrRedirect([Roles::$owner, Roles::$admin, Roles::$manager, Roles::$editor], true);
 
         $fromDate = dtHelper()->userNow()->startOfMonth();
@@ -73,7 +78,7 @@ class ShowMyMonthlyTimesheet extends Controller
         ));
         $this->tpl->assign('allTickets', $this->tickets->getUsersTickets(
             id: session('userdata.id'),
-            limit: -1
+            limit: 10000
         ));
         $this->tpl->assign('allTimesheets', $myTimesheets);
 
