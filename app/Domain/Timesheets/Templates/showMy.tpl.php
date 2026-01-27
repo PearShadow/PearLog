@@ -476,7 +476,7 @@ foreach ($tpl->get('allTimesheets') as $timeRow) {
                                 </div>
                             </td>
                             <td width="8%">
-                                <select class="kind-select" name="kindId">
+                                <select class="kind-select" name="kindId" style="width:150px;">
                                         <?php foreach ($tpl->get('kind') as $key => $kindRow) { ?>
                                             <?php echo '<option value='.$key.'>'.$tpl->__($kindRow).'</option>'; ?>
                                         <?php }?>
