@@ -100,25 +100,25 @@ public function __construct(
         ];
     }
 
-    public function getUsersProfilesWithEnabledAutoExport(int $userId): array 
+    public function getUsersProfilesWithEnabledAutoExport(int $userId): array
 {
     $settingKey = "user.{$userId}.timesheetFilters";
 
     $this->settingRepository->clearCache($settingKey);
     $preferences = $this->settingRepository->getSetting($settingKey);
-    
+
     if (!$preferences) {
         return [];
     }
-    
+
     if (is_string($preferences)) {
         $preferences = json_decode($preferences, true);
     }
-    
+
     if (!is_array($preferences)) {
         return [];
     }
-    
+
     $autoExportProfiles = [];
     foreach ($preferences as $name => $profile) {
         if (isset($profile['autoExport']) && $profile['autoExport'] === true) {
@@ -150,19 +150,19 @@ public function getAllProfilesWithEnabledAutoExport (): array {
 public function getAllUsersProfiles(int $userId): array {
     $settingKey = "user.{$userId}.timesheetFilters";
     $preferences = $this->settingRepository->getSetting($settingKey);
-    
+
     if (!$preferences) {
         return [];
     }
-    
+
     if (is_string($preferences)) {
         $preferences = json_decode($preferences, true);
     }
-    
+
     if (!is_array($preferences)) {
         return [];
     }
-    
+
     return $preferences;
 }
 
@@ -173,11 +173,11 @@ public function getAllProfiles(): array {
     foreach ($allUsers as $user) {
         $userId = $user['id'];
         $profiles = $this->getAllUsersProfiles($userId);
-        
+
         if (!empty($profiles)) {
             $allProfiles[] = [
                 'user_id' => $userId,
-                'user_name' => $user['firstname'] . ' ' . $user['lastname'], 
+                'user_name' => $user['firstname'] . ' ' . $user['lastname'],
                 'profiles' => $profiles
             ];
         }
@@ -199,21 +199,23 @@ public function getAllProfiles(): array {
         $profileFilters = $profile['filters'] ?? [];
         $userId = $profileFilters['userId'] ?? null;
         if ($userId === 'all' || $userId === '') {
-            $userId = null; 
+            $userId = null;
         } elseif ($userId !== null) {
-            $userId = (int)$userId;  
+            $userId = (int)$userId;
         }
+            $currentMonthStart = dtHelper()->userNow()->startOfMonth()->setToDbTimezone();
+            $currentMonthEnd = dtHelper()->userNow()->endOfMonth()->setToDbTimezone();
         $filters = [
-            'dateFrom' => isset($profileFilters['dateFrom']) ? dtHelper()->parseUserDateTime($profileFilters['dateFrom'])->setToDbTimezone() : dtHelper()->userNow()->startOfMonth()->setToDbTimezone(),
-            'dateTo' => isset($profileFilters['dateTo']) ? dtHelper()->parseUserDateTime($profileFilters['dateTo'])->setToDbTimezone() : dtHelper()->userNow()->endOfMonth()->setToDbTimezone(),
-            'projectFilter' => $profileFilters['projects'] ?? -1,
-            'kind' => $profileFilters['kind'] ?? 'all',
-            'userId' => $userId,
-            'invEmplCheck' => $profileFilters['invEmpl'] ?? '-1',
-            'invCompCheck' => $profileFilters['invComp'] ?? '0',
-            'ticketParameter' => $profileFilters['ticketParameter'] ?? '-1',
-            'paidCheck' => $profileFilters['paid'] ?? '0',
-            'clientId' => $profileFilters['clientId'] ?? -1,
+                'dateFrom' => $currentMonthStart,
+                'dateTo' => $currentMonthEnd,
+                'projectFilter' => $profileFilters['projects'] ?? -1,
+                'kind' => $profileFilters['kind'] ?? 'all',
+                'userId' => $userId,
+                'invEmplCheck' => $profileFilters['invEmpl'] ?? '-1',
+                'invCompCheck' => $profileFilters['invComp'] ?? '0',
+                'ticketParameter' => $profileFilters['ticketParameter'] ?? '-1',
+                'paidCheck' => $profileFilters['paid'] ?? '0',
+                'clientId' => $profileFilters['clientId'] ?? -1,
         ];
 
         $columnState = $profileFilters['columnState'] ?? [];
@@ -233,20 +235,20 @@ public function getAllProfiles(): array {
 private function sendCsvToSlack(string $csvContent, string $profileName): bool
 {
     $slackBotToken = env('SLACK_BOT_TOKEN', '');
-    
+
     if (empty($slackBotToken)) {
         return false;
     }
 
     $channelId = env('SLACK_CHANNEL_ID', '');
-    
+
     if (empty($channelId)) {
         return false;
     }
-    
+
     try {
         $filename = "timesheet_{$profileName}_" . date('Y-m-d') . ".csv";
-                
+
         $getUploadUrlResponse = $this->httpClient->post('https://slack.com/api/files.getUploadURLExternal', [
             'headers' => [
                 'Authorization' => "Bearer {$slackBotToken}",
@@ -259,25 +261,25 @@ private function sendCsvToSlack(string $csvContent, string $profileName): bool
         ]);
 
         $uploadUrlData = json_decode($getUploadUrlResponse->getBody()->getContents(), true);
-        
+
         if (!isset($uploadUrlData['ok']) || !$uploadUrlData['ok']) {
             return false;
         }
 
         $uploadUrl = $uploadUrlData['upload_url'];
         $fileId = $uploadUrlData['file_id'];
-                
+
         $uploadResponse = $this->httpClient->post($uploadUrl, [
             'body' => $csvContent,
             'headers' => [
                 'Content-Type' => 'text/csv',
             ]
         ]);
-        
+
         if ($uploadResponse->getStatusCode() !== 200) {
             return false;
         }
-        
+
         $completeResponse = $this->httpClient->post('https://slack.com/api/files.completeUploadExternal', [
             'headers' => [
                 'Authorization' => "Bearer {$slackBotToken}",
@@ -296,13 +298,13 @@ private function sendCsvToSlack(string $csvContent, string $profileName): bool
         ]);
 
         $completeData = json_decode($completeResponse->getBody()->getContents(), true);
-        
+
         if (isset($completeData['ok']) && $completeData['ok']) {
             return true;
         } else {
             return false;
         }
-        
+
     } catch (\GuzzleHttp\Exception\GuzzleException $e) {
         report($e);
         return false;
@@ -364,9 +366,9 @@ private function generateCsvString(array $filters, array $columnState = []): str
     $headers = array_intersect_key($allColumns, $activeColumns);
 
     $output = fopen('php://temp', 'w+');
-    
+
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    
+
     fputcsv($output, array_values($headers));
     $totalHours = 0;
 
@@ -396,7 +398,7 @@ private function generateCsvString(array $filters, array $columnState = []): str
         $filteredRow = array_intersect_key($rowData, $activeColumns);
         fputcsv($output, array_values($filteredRow));
     }
-    
+
     $totalsRowData = [
         'id' => '',
         'tickId' => '',
