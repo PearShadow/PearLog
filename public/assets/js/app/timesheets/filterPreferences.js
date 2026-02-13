@@ -22,6 +22,7 @@
                 initUI();
                 initDateRangeTracking();
                 updateActiveProfileDisplay();
+                checkAndRefreshActiveProfile();
             }
 
         };
@@ -29,17 +30,85 @@
         setTimeout(checkAndInit, 100);
     }
 
+    function checkAndRefreshActiveProfile() {
+        const activeProfile = localStorage.getItem('activeProfileName');
+        const dateRange = localStorage.getItem('activeProfileDateRange');
+        const lastApplied = localStorage.getItem('activeProfileLastApplied');
+
+        if (!activeProfile || !dateRange || !lastApplied || dateRange === 'Custom') {
+            return;
+        }
+
+        const lastAppliedDate = new Date(lastApplied);
+        const now = new Date();
+
+        if (shouldRefreshRange(dateRange, lastAppliedDate, now)) {
+
+            loadAllPreferences().then(function () {
+                const pref = currentPreferences[activeProfile];
+                if (pref && pref.filters) {
+                    applyFilters(pref.filters).then(function () {
+                        localStorage.setItem('activeProfileLastApplied', now.toISOString());
+                        jQuery('#form').submit();
+                    });
+                }
+            });
+        }
+    }
+
+    function shouldRefreshRange(rangeType, lastApplied, now) {
+        const lastAppliedDay = new Date(lastApplied.getFullYear(), lastApplied.getMonth(), lastApplied.getDate());
+        const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        switch (rangeType) {
+            case 'Today':
+            case 'Yesterday':
+                return lastAppliedDay.getTime() !== nowDay.getTime();
+
+            case 'This Week':
+                const lastWeekStart = getStartOfWeek(lastApplied);
+                const nowWeekStart = getStartOfWeek(now);
+                return lastWeekStart.getTime() !== nowWeekStart.getTime();
+
+            case 'This Month':
+                return lastApplied.getMonth() !== now.getMonth() ||
+                    lastApplied.getFullYear() !== now.getFullYear();
+
+            case 'Last Month':
+                return lastApplied.getMonth() !== now.getMonth() ||
+                    lastApplied.getFullYear() !== now.getFullYear();
+
+            default:
+                return false;
+        }
+    }
+
+    function getStartOfWeek(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(d.setDate(diff));
+    }
+
     function initDateRangeTracking() {
         const dateInput = jQuery('input[name="dateFrom"]');
 
         if (dateInput.length && dateInput.data('daterangepicker')) {
+            const picker = dateInput.data('daterangepicker');
+            jQuery(document).on('click', '.daterangepicker .ranges li', function () {
+                const label = jQuery(this).text().trim();
+                selectedRangeName = label;
+                picker._storedChosenLabel = label;
+            });
+
             dateInput.on('apply.daterangepicker', function (ev, picker) {
-                if (picker.chosenLabel) {
+                if (picker.chosenLabel && picker.chosenLabel !== 'Custom Range') {
                     selectedRangeName = picker.chosenLabel;
+                    picker._storedChosenLabel = picker.chosenLabel;
                 }
             });
         } else {
-            setTimeout(initDateRangeTracking, 500);
+            setTimeout(initDateRangeTracking, 300);
         }
     }
 
@@ -65,6 +134,8 @@
                     await applyFilters(data.preference.filters);
                     activeProfileName = name;
                     localStorage.setItem('activeProfileName', name);
+                    localStorage.setItem('activeProfileDateRange', data.preference.filters.dateRange || 'Custom');
+                    localStorage.setItem('activeProfileLastApplied', new Date().toISOString());
                     updateActiveProfileDisplay();
                     jQuery('#form').submit();
                     return true;
@@ -95,6 +166,8 @@
     function clearActiveProfile() {
         activeProfileName = null;
         localStorage.removeItem('activeProfileName');
+        localStorage.removeItem('activeProfileDateRange');
+        localStorage.removeItem('activeProfileLastApplied');
         updateActiveProfileDisplay();
     }
 
@@ -154,47 +227,50 @@
         return false;
     }
     function applyDateRange(rangeName) {
-        const dateInput = jQuery('input[name="dateFrom"]');
 
+        const dateInput = jQuery('input[name="dateFrom"]');
         if (!dateInput.length || !dateInput.data('daterangepicker')) {
             return false;
         }
 
         const picker = dateInput.data('daterangepicker');
-        const ranges = picker.ranges;
 
-        if (ranges && ranges[rangeName]) {
-            const range = ranges[rangeName];
-            const startDate = range[0];
-            const endDate = range[1];
+        let startDate, endDate;
 
-            picker.setStartDate(startDate);
-            picker.setEndDate(endDate);
-            picker.chosenLabel = rangeName;
-
-            jQuery('input[name="dateFrom"]').val(startDate.format('YYYY-MM-DD'));
-            jQuery('input[name="dateTo"]').val(endDate.format('YYYY-MM-DD'));
-
-            selectedRangeName = rangeName;
-
-            return true;
+        switch (rangeName) {
+            case 'Today':
+                startDate = moment().startOf('day');
+                endDate = moment().endOf('day');
+                break;
+            case 'This Week':
+                startDate = moment().startOf('isoWeek');
+                endDate = moment().endOf('isoWeek');
+                break;
+            case 'This Month':
+                startDate = moment().startOf('month');
+                endDate = moment().endOf('month');
+                break;
+            default:
+                return false;
         }
 
-        return false;
+        picker.setStartDate(startDate);
+        picker.setEndDate(endDate);
+
+        picker.chosenLabel = rangeName;
+        picker._storedChosenLabel = rangeName;
+
+        jQuery('input[name="dateFrom"]').val(startDate.format('YYYY-MM-DD'));
+        jQuery('input[name="dateTo"]').val(endDate.format('YYYY-MM-DD'));
+
+        selectedRangeName = rangeName;
+
+        return true;
     }
 
     async function applyFilters(filters) {
         if (!filters) {
             return;
-        }
-        if (filters.clientId) {
-            jQuery('select[name="clientId"]').val(filters.clientId);
-        }
-        if (filters.userId) {
-            jQuery('select[name="userId"]').val(filters.userId);
-        }
-        if (filters.kind) {
-            jQuery('select[name="kind"]').val(filters.kind);
         }
 
         if (filters.dateRange && filters.dateRange !== 'Custom') {
@@ -214,41 +290,6 @@
             }
             if (filters.dateTo) {
                 jQuery('input[name="dateTo"]').val(filters.dateTo);
-            }
-        }
-
-        jQuery('input[name="invEmpl"]').prop('checked', filters.invEmpl === '1');
-        jQuery('input[name="invComp"]').prop('checked', filters.invComp === '1');
-        jQuery('input[name="paid"]').prop('checked', filters.paid === '1');
-
-        if (filters.projects && Array.isArray(filters.projects)) {
-            jQuery('input[name="project[]"]').prop('checked', false);
-
-            if (filters.projects.includes('-1') || filters.projects.length === 0) {
-                jQuery('#projectCheckboxAll').prop('checked', true);
-            } else {
-                filters.projects.forEach(function (projectId) {
-                    jQuery('input[name="project[]"][value="' + projectId + '"]').prop('checked', true);
-                });
-                jQuery('#projectCheckboxAll').prop('checked', false);
-            }
-
-            if (typeof updateProjectCountInline === 'function') {
-                updateProjectCountInline();
-            }
-        }
-
-        if (filters.columnState && dataTableInstance && typeof dataTableInstance.columns === 'function') {
-            dataTableInstance.columns().every(function (index) {
-                const column = this;
-                const columnName = jQuery(column.header()).data('column-name');
-                if (columnName && filters.columnState.hasOwnProperty(columnName)) {
-                    column.visible(filters.columnState[columnName]);
-                }
-            });
-
-            if (typeof window.leantimeDataTablesColumnState !== 'undefined') {
-                await window.leantimeDataTablesColumnState.save('allTimesheetsTable', filters.columnState, true);
             }
         }
     }
@@ -286,10 +327,14 @@
 
         if (dateInput.length && dateInput.data('daterangepicker')) {
             const picker = dateInput.data('daterangepicker');
-            if (picker.chosenLabel) {
+            if (picker._storedChosenLabel && picker._storedChosenLabel !== 'Custom Range') {
+                dateRange = picker._storedChosenLabel;
+            } else if (picker.chosenLabel && picker.chosenLabel !== 'Custom Range') {
                 dateRange = picker.chosenLabel;
-            } else if (selectedRangeName) {
+            } else if (selectedRangeName && selectedRangeName !== 'Custom Range') {
                 dateRange = selectedRangeName;
+            } else {
+                dateRange = detectRangeFromDates(dateFrom, dateTo);
             }
         }
 
@@ -339,6 +384,31 @@
         }
 
         return projectFilters;
+    }
+    function detectRangeFromDates(dateFrom, dateTo) {
+        if (!dateFrom || !dateTo) return 'Custom';
+
+        const from = moment(dateFrom, 'MM/DD/YYYY');
+        const to = moment(dateTo, 'MM/DD/YYYY');
+        const today = moment().startOf('day');
+
+        if (from.isSame(today, 'day') && to.isSame(today, 'day')) {
+            return 'Today';
+        }
+
+        const thisWeekStart = moment().startOf('isoWeek');
+        const thisWeekEnd = moment().endOf('isoWeek');
+        if (from.isSame(thisWeekStart, 'day') && to.isSame(thisWeekEnd, 'day')) {
+            return 'This Week';
+        }
+
+        const thisMonthStart = moment().startOf('month');
+        const thisMonthEnd = moment().endOf('month');
+        if (from.isSame(thisMonthStart, 'day') && to.isSame(thisMonthEnd, 'day')) {
+            return 'This Month';
+        }
+
+        return 'Custom';
     }
 
     async function deletePreference(name) {
@@ -518,13 +588,11 @@
     }
 
     function showProjectSelector(profileName) {
-        // Remove existing modal if any
         jQuery('#slackProjectModal').remove();
 
         const pref = currentPreferences[profileName];
         const currentProjectId = pref ? pref.slackProjectId : '';
 
-        // Build project options
         let projectOptions = '<option value="">-- No Project (Disable Slack) --</option>';
         if (typeof projectNames !== 'undefined') {
             for (const [id, name] of Object.entries(projectNames)) {
