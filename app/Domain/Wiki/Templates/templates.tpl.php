@@ -490,6 +490,13 @@ $labelGray->category = $tpl->__('templates.elements');
 $labelGray->description = $tpl->__('templates.titles.gray_status_description');
 $labelGray->content = '<span class="label label-default">Gray</span>';
 $templates[] = $labelGray;
+$saveCurrentTemplate = app()->make(Template::class);
+$saveCurrentTemplate->title = '💾 Save Current Content as Template';
+$saveCurrentTemplate->category = 'My Custom Templates';
+$saveCurrentTemplate->description = 'Save what you just wrote as a reusable template';
+$saveCurrentTemplate->content = '<p data-template-action="save-current">Click to save current editor content as a template</p>';
+$templates[] = $saveCurrentTemplate;
+
 try {
     $customTemplatesRepo = app()->make(CustomTemplatesRepository::class);
     $userId = $_SESSION['userdata']['id'] ?? null;
