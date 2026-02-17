@@ -6,6 +6,7 @@ use Leantime\Core\Controller\Controller;
 use Leantime\Domain\Tickets\Services\CustomTemplatesService;
 use Leantime\Core\Controller\Frontcontroller;
 
+
 class CustomTemplates extends Controller
 {
     private CustomTemplatesService $templateService;
