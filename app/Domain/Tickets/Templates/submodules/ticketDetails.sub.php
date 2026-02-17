@@ -178,6 +178,63 @@ if ($currentUser && isset($currentUser['firstname'], $currentUser['lastname'])) 
                     <textarea name="description" id="ticketDescription"
                               class="complexEditor"><?php echo $ticket->description !== null ? htmlentities($ticket->description) : ''; ?></textarea><br/>
                 </div>
+                <div class="form-group">
+    <button type="button" class="btn btn-sm btn-default" id="saveDescriptionAsTemplate">
+        <i class="fa fa-save"></i> Save as Template
+    </button>
+</div>
+
+<script>
+jQuery(document).ready(function() {
+    jQuery('#saveDescriptionAsTemplate').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Use simple prompt instead of modal
+        var templateName = prompt('Enter a name for this template:');
+        
+        if (!templateName || templateName.trim() === '') {
+            return;
+        }
+        
+        // Get content from TinyMCE
+        var content = '';
+        if (typeof tinymce !== 'undefined' && tinymce.get('ticketDescription')) {
+            content = tinymce.get('ticketDescription').getContent();
+        } else {
+            content = jQuery('#ticketDescription').val();
+        }
+        
+        if (!content || content.trim() === '') {
+            alert('No content to save as template');
+            return;
+        }
+        
+        console.log('Saving template:', templateName);
+        console.log('Content length:', content.length);
+        
+        // Save via AJAX - FIXED URL
+        jQuery.ajax({
+            url: '<?php echo BASE_URL; ?>/tickets/customTemplates/save',
+            method: 'POST',
+            data: {
+                title: templateName.trim(),
+                content: content
+            },
+            success: function(response) {
+                console.log('Success response:', response);
+                alert('Template saved successfully! Refresh to see it in TinyMCE templates.');
+            },
+            error: function(xhr, status, error) {
+                console.error('Error status:', status);
+                console.error('Error:', error);
+                console.error('Response:', xhr.responseText);
+                alert('Failed to save template. Check console for details.');
+            }
+        });
+    });
+});
+</script>
                 <input type="hidden" name="acceptanceCriteria" value=""/>
 
             </div>
