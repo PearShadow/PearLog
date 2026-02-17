@@ -498,8 +498,9 @@ $saveCurrentTemplate->content = '<p data-template-action="save-current">Click to
 $templates[] = $saveCurrentTemplate;
 
 try {
-    $customTemplatesRepo = app()->make(CustomTemplatesRepository::class);
-    $userId = $_SESSION['userdata']['id'] ?? null;
+    $customTemplatesRepo = app()->make(\Leantime\Domain\Tickets\Repositories\CustomTemplatesRepository::class);
+    
+    $userId = session('userdata.id');
     
     if ($userId) {
         $customTemplatesData = $customTemplatesRepo->getAll($userId);
@@ -508,9 +509,8 @@ try {
             $customTpl = app()->make(Template::class);
             $customTpl->title = $customTemplate['title'];
             $customTpl->category = 'My Custom Templates';
-            $customTpl->description = 'Custom template';
+            $customTpl->description = $customTemplate['title']; // or a real description field if you have one
             $customTpl->content = $customTemplate['content'];
-            
             $templates[] = $customTpl;
         }
     }
