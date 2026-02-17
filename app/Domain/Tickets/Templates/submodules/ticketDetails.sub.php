@@ -190,14 +190,12 @@ jQuery(document).ready(function() {
         e.preventDefault();
         e.stopPropagation();
         
-        // Use simple prompt instead of modal
         var templateName = prompt('Enter a name for this template:');
         
         if (!templateName || templateName.trim() === '') {
             return;
         }
         
-        // Get content from TinyMCE
         var content = '';
         if (typeof tinymce !== 'undefined' && tinymce.get('ticketDescription')) {
             content = tinymce.get('ticketDescription').getContent();
@@ -210,10 +208,6 @@ jQuery(document).ready(function() {
             return;
         }
         
-        console.log('Saving template:', templateName);
-        console.log('Content length:', content.length);
-        
-        // Save via AJAX - FIXED URL
         jQuery.ajax({
             url: '<?php echo BASE_URL; ?>/tickets/customTemplates/save',
             method: 'POST',
@@ -222,8 +216,7 @@ jQuery(document).ready(function() {
                 content: content
             },
             success: function(response) {
-                console.log('Success response:', response);
-                alert('Template saved successfully! Refresh to see it in TinyMCE templates.');
+                alert('Template saved successfully!');
             },
             error: function(xhr, status, error) {
                 console.error('Error status:', status);
