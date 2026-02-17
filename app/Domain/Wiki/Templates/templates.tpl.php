@@ -1,6 +1,8 @@
 <?php
 
 use Leantime\Domain\Wiki\Models\Template;
+use Leantime\Domain\Tickets\Repositories\CustomTemplates;
+use Leantime\Domain\Tickets\Repositories\CustomTemplatesRepository;
 
 foreach ($__data as $var => $val) {
     $$var = $val; // necessary for blade refactor
@@ -488,6 +490,26 @@ $labelGray->category = $tpl->__('templates.elements');
 $labelGray->description = $tpl->__('templates.titles.gray_status_description');
 $labelGray->content = '<span class="label label-default">Gray</span>';
 $templates[] = $labelGray;
+try {
+    $customTemplatesRepo = app()->make(CustomTemplatesRepository::class);
+    $userId = $_SESSION['userdata']['id'] ?? null;
+    
+    if ($userId) {
+        $customTemplatesData = $customTemplatesRepo->getAll($userId);
+        
+        foreach ($customTemplatesData as $customTemplate) {
+            $customTpl = app()->make(Template::class);
+            $customTpl->title = $customTemplate['title'];
+            $customTpl->category = 'My Custom Templates';
+            $customTpl->description = 'Custom template';
+            $customTpl->content = $customTemplate['content'];
+            
+            $templates[] = $customTpl;
+        }
+    }
+} catch (\Exception $e) {
+    error_log('Failed to load custom templates: ' . $e->getMessage());
+}
 
 $templates = $tpl->dispatch_filter('documentTemplates', $templates);
 
