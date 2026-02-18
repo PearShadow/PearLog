@@ -183,46 +183,92 @@ if ($currentUser && isset($currentUser['firstname'], $currentUser['lastname'])) 
         <i class="fa fa-save"></i> Save as Template
     </button>
 </div>
+<div id="saveTemplateModal" class="modal" style="display:none;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" id="closeTemplateModal"><span>&times;</span></button>
+                <h4 class="modal-title"><i class="fa fa-save"></i> Save as Template</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="control-label">Template Name</label>
+                    <input type="text" id="templateNameInput" class="form-control" placeholder="Enter template name..." autocomplete="off"/>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" id="closeTemplateModal2">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSaveTemplate">
+                    <i class="fa fa-save"></i> Save Template
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-jQuery(document).ready(function() {
-    jQuery('#saveDescriptionAsTemplate').on('click', function(e) {
+jQuery(document).ready(function($) {
+
+    $('#saveDescriptionAsTemplate').on('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        
-        var templateName = prompt('Enter a name for this template:');
-        
-        if (!templateName || templateName.trim() === '') {
+        $('#templateNameInput').val('');
+        $('#saveTemplateModal').modal('show');
+    });
+
+    $('#closeTemplateModal, #closeTemplateModal2').on('click', function() {
+        $('#saveTemplateModal').modal('hide');
+    });
+
+    $('#saveTemplateModal').on('shown.bs.modal', function() {
+        $('#templateNameInput').focus();
+    });
+
+    $('#templateNameInput').on('keypress', function(e) {
+        if (e.which === 13) {
+            $('#confirmSaveTemplate').trigger('click');
+        }
+    });
+
+    $('#confirmSaveTemplate').on('click', function() {
+        var templateName = $('#templateNameInput').val().trim();
+
+        if (!templateName) {
+            $('#templateNameInput').addClass('has-error').focus();
             return;
         }
-        
+
         var content = '';
         if (typeof tinymce !== 'undefined' && tinymce.get('ticketDescription')) {
             content = tinymce.get('ticketDescription').getContent();
         } else {
-            content = jQuery('#ticketDescription').val();
+            content = $('#ticketDescription').val();
         }
-        
+
         if (!content || content.trim() === '') {
-            alert('No content to save as template');
+            $('#saveTemplateModal').modal('hide');
+            leantime.notifications.show('No content to save as template.', 'warning');
             return;
         }
-        
-        jQuery.ajax({
+
+        $('#confirmSaveTemplate').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
+
+        $.ajax({
             url: '<?php echo BASE_URL; ?>/tickets/customTemplates/save',
             method: 'POST',
             data: {
-                title: templateName.trim(),
+                title: templateName,
                 content: content
             },
             success: function(response) {
+                $('#saveTemplateModal').modal('hide');
                 alert('Template saved successfully!');
             },
             error: function(xhr, status, error) {
-                console.error('Error status:', status);
-                console.error('Error:', error);
-                console.error('Response:', xhr.responseText);
-                alert('Failed to save template. Check console for details.');
+                alert('error: ' + xhr.responseText.substring(0, 100));
+            },
+            complete: function() {
+                $('#confirmSaveTemplate').prop('disabled', false).html('<i class="fa fa-save"></i> Save Template');
             }
         });
     });

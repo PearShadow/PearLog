@@ -37,7 +37,7 @@ class CustomTemplates extends Controller
         $userId = $this->getUserId();
         $templates = $this->templateService->getAllTemplates($userId);
 
-        $formatted = array_map(function($tpl) {
+        $formatted = array_map(function ($tpl) {
             return [
                 'title' => $tpl['title'],
                 'content' => $tpl['content'],
