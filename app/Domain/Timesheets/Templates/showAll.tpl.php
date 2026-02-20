@@ -224,8 +224,7 @@ function restoreFilters() {
     <div class="maincontentinner">
         <div style="float:left;">
             <?php echo $tpl->displayNotification() ?>
-            <form id="exportSlackForm" action="<?= BASE_URL ?>/timesheets/slackMonthlyReportController/sendCsvFromUsersProfilesWhichHaveTickboxTrue" method="post" style="display:none;"></form>
-                <button class="dt-button" onclick="document.getElementById('exportSlackForm').submit();" style="padding: 4px 14px;">
+            <button type="submit" form="form" formaction="<?= BASE_URL ?>/timesheets/slackMonthlyReportController/sendCsvFromUsersProfilesWhichHaveTickboxTrue" class="dt-button" id="exportToSlackBtn" style="padding: 4px 14px;">
                 Export to Slack
             </button>
         </div>

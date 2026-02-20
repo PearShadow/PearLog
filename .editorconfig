@@ -3,7 +3,7 @@
 charset = utf-8
 end_of_line = lf
 insert_final_newline = true
-trim_trailing_whitespace = true
+trim_trailing_whitespace = false
 indent_style = space
 
 # 4 space indenting
