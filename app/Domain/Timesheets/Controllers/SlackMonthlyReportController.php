@@ -28,8 +28,9 @@ public function sendCsvFromUsersProfilesWhichHaveTickboxTrue(): Response
     if(Auth::userIsAtLeast(Roles::$admin)) {
         $userId = session('userdata.id');
         $profilesWithEnabledAutoExport = $this->slackReportService->getUsersProfilesWithEnabledAutoExport($userId);
+        $activeProfileName = isset($_POST['timesheet_export_profile']) ? trim((string) $_POST['timesheet_export_profile']) : '';
 
-        $this->slackReportService->sendMonthlyReportToSlack($profilesWithEnabledAutoExport);
+        $this->slackReportService->sendMonthlyReportToSlack($profilesWithEnabledAutoExport, $activeProfileName);
 
         return Frontcontroller::redirect(BASE_URL.'/timesheets/showAll');
     }
