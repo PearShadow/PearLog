@@ -165,7 +165,7 @@ var initEditTimeModal = function () {
         titleFromIframe: true
     };
 
-    jQuery(document).on('click', '.editTimeModal', function (e) {
+    jQuery(document).on('click', 'a.editTimeModal', function (e) {
         if (!isReady) return;
         e.preventDefault();
         jQuery(this).nyroModal(canvasoptions);
