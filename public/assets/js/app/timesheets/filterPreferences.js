@@ -104,7 +104,7 @@
             });
 
             dateInput.on('apply.daterangepicker', function (ev, picker) {
-                if (picker.chosenLabel && picker.chosenLabel !== 'Custom Range') {
+                if (picker.chosenLabel && picker.chosenLabel !== 'Custom Range' && picker.chosenLabel !== 'Custom') {
                     selectedRangeName = picker.chosenLabel;
                     picker._storedChosenLabel = picker.chosenLabel;
                 }
@@ -144,6 +144,7 @@
                     localStorage.setItem('activeProfileDateRange', data.preference.filters.dateRange || 'Custom');
                     localStorage.setItem('activeProfileLastApplied', new Date().toISOString());
                     updateActiveProfileDisplay();
+                    window._timesheetSubmitFromProfileLoad = true;
                     jQuery('#form').submit();
                     return true;
                 } else {
@@ -162,11 +163,18 @@
 
     function updateActiveProfileDisplay() {
         const button = jQuery('#filterPreferencesBtn');
+        const exportProfileInput = document.getElementById('timesheetExportProfile');
         if (activeProfileName) {
             button.html(`<span><i class="fa fa-bookmark"></i> Profile: ${activeProfileName}</span>`);
+            if (exportProfileInput) {
+                exportProfileInput.value = activeProfileName;
+            }
         } else {
             button.html(`<span><i class="fa fa-bookmark"></i> None selected</span>`);
             button.css('background-color', '');
+            if (exportProfileInput) {
+                exportProfileInput.value = '';
+            }
         }
     }
 
@@ -236,7 +244,11 @@
         const formElement = document.getElementById('form');
         if (formElement) {
             formElement.addEventListener('submit', function(e) {
-                if (activeProfileName && !isEditMode && !isApplyingFilters) {
+                if (window._timesheetSubmitFromProfileLoad) {
+                    window._timesheetSubmitFromProfileLoad = false;
+                } else if (window._timesheetSubmitFromExportToSlack) {
+                    window._timesheetSubmitFromExportToSlack = false;
+                } else if (activeProfileName && !isEditMode && !isApplyingFilters) {
                     clearActiveProfile();
                 }
 
@@ -462,11 +474,14 @@
 
         if (dateInput.length && dateInput.data('daterangepicker')) {
             const picker = dateInput.data('daterangepicker');
-            if (picker._storedChosenLabel && picker._storedChosenLabel !== 'Custom Range') {
+            const isPreset = function (label) {
+                return label && label !== 'Custom Range' && label !== 'Custom';
+            };
+            if (isPreset(picker._storedChosenLabel)) {
                 dateRange = picker._storedChosenLabel;
-            } else if (picker.chosenLabel && picker.chosenLabel !== 'Custom Range') {
+            } else if (isPreset(picker.chosenLabel)) {
                 dateRange = picker.chosenLabel;
-            } else if (selectedRangeName && selectedRangeName !== 'Custom Range') {
+            } else if (isPreset(selectedRangeName)) {
                 dateRange = selectedRangeName;
             } else {
                 dateRange = detectRangeFromDates(dateFrom, dateTo);
@@ -524,8 +539,10 @@
     function detectRangeFromDates(dateFrom, dateTo) {
         if (!dateFrom || !dateTo) return 'Custom';
 
-        const from = moment(dateFrom, 'MM/DD/YYYY');
-        const to = moment(dateTo, 'MM/DD/YYYY');
+        const from = moment(dateFrom, ['YYYY-MM-DD', 'MM/DD/YYYY'], true);
+        const to = moment(dateTo, ['YYYY-MM-DD', 'MM/DD/YYYY'], true);
+        if (!from.isValid() || !to.isValid()) return 'Custom';
+
         const today = moment().startOf('day');
 
         if (from.isSame(today, 'day') && to.isSame(today, 'day')) {
@@ -544,6 +561,10 @@
             return 'This Month';
         }
 
+        const last7Start = moment().subtract(6, 'days').startOf('day');
+        if (from.isSame(last7Start, 'day') && to.isSame(today, 'day')) {
+            return 'Last 7 Days';
+        }
         return 'Custom';
     }
 
@@ -1048,6 +1069,40 @@
             saveAutoExportSetting(profileName, isEnabled);
         });
 
+        jQuery(document).on('click', '#exportToSlackBtn', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const btn = this;
+            const form = document.getElementById('form');
+            const hiddenInput = document.getElementById('timesheetExportProfile');
+            const slackUrl = btn.getAttribute('formaction') || (leantime.appUrl + '/timesheets/slackMonthlyReportController/sendCsvFromUsersProfilesWhichHaveTickboxTrue');
+            const profileName = localStorage.getItem('activeProfileName') || '';
+
+            function doSubmit() {
+                if (hiddenInput) {
+                    hiddenInput.value = profileName;
+                }
+                window._timesheetSubmitFromExportToSlack = true;
+                form.action = slackUrl;
+                form.submit();
+            }
+
+            if (profileName) {
+                loadAllPreferences().then(function () {
+                    const pref = currentPreferences[profileName];
+                    if (pref && pref.filters) {
+                        applyFilters(pref.filters);
+                        setTimeout(doSubmit, 450);
+                    } else {
+                        doSubmit();
+                    }
+                }).catch(function () {
+                    doSubmit();
+                });
+            } else {
+                doSubmit();
+            }
+        });
     }
 
     async function saveAutoExportSetting(profileName, enabled) {
