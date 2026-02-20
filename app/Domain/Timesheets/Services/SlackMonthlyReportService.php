@@ -2,6 +2,7 @@
 
 namespace Leantime\Domain\Timesheets\Services;
 
+use Carbon\CarbonInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Leantime\Domain\Timesheets\Services\Timesheets as TimesheetService;
 use Leantime\Domain\Tickets\Services\Tickets as TicketService;
@@ -44,12 +45,12 @@ public function __construct(
 
         $dateFrom = dtHelper()->userNow()->startOfMonth()->setToDbTimezone();
         if (!empty($_POST['dateFrom'])) {
-            $dateFrom = dtHelper()->parseUserDateTime($_POST['dateFrom'])->setToDbTimezone();
+            $dateFrom = dtHelper()->parseUserDateTime($_POST['dateFrom'])->startOfDay()->setToDbTimezone();
         }
 
         $dateTo = dtHelper()->userNow()->endOfMonth()->setToDbTimezone();
-        if (!empty($_POST['dateTo'])) {
-            $dateTo = dtHelper()->parseUserDateTime($_POST['dateTo'])->setToDbTimezone();
+        if (! empty($_POST['dateTo'])) {
+            $dateTo = dtHelper()->parseUserDateTime($_POST['dateTo'])->endOfDay()->setToDbTimezone();
         }
 
         $invEmplCheck = (isset($_POST['invEmpl']) && $_POST['invEmpl'] === '1') ? '1' : '-1';
@@ -97,6 +98,52 @@ public function __construct(
             'ticketParameter' => $ticketParameter,
             'paidCheck' => $paidCheck,
             'clientId' => $clientId
+        ];
+    }
+
+    /* Resolve dateFrom/dateTo at export time from a profile's saved filters (dateRange preset or dateFrom/dateTo) */
+    private function resolveDateRangeFromProfile(array $profileFilters): array
+    {
+        $userNow = dtHelper()->userNow()->setToDbTimezone();
+        $dateRange = $profileFilters['dateRange'] ?? 'Custom';
+
+        switch ($dateRange) {
+            case 'Today':
+                return [
+                    $userNow->copy()->startOfDay(),
+                    $userNow->copy()->endOfDay(),
+                ];
+            case 'This Week':
+                return [
+                    $userNow->copy()->startOfWeek(CarbonInterface::MONDAY),
+                    $userNow->copy()->endOfWeek(CarbonInterface::SUNDAY),
+                ];
+            case 'This Month':
+                return [
+                    $userNow->copy()->startOfMonth(),
+                    $userNow->copy()->endOfMonth(),
+                ];
+            case 'Last 7 Days':
+                return [
+                    $userNow->copy()->subDays(6)->startOfDay(),
+                    $userNow->copy()->endOfDay(),
+                ];
+            default:
+                break;
+        }
+
+        $dateFrom = $profileFilters['dateFrom'] ?? null;
+        $dateTo = $profileFilters['dateTo'] ?? null;
+        if (! empty($dateFrom) && ! empty($dateTo)) {
+            return [
+                dtHelper()->parseUserDateTime($dateFrom)->startOfDay()->setToDbTimezone(),
+                dtHelper()->parseUserDateTime($dateTo)->endOfDay()->setToDbTimezone(),
+            ];
+        }
+
+        return [
+            $userNow->copy()->startOfMonth(),
+            $userNow->copy()->endOfMonth(),
         ];
     }
 
@@ -191,7 +238,7 @@ public function getAllProfiles(): array {
     }
 
     //Send monthly report to slack
-    public function sendMonthlyReportToSlack($profilesWithEnabledAutoExport): void {
+    public function sendMonthlyReportToSlack(array $profilesWithEnabledAutoExport, string $activeProfileName = ''): void {
         if (empty($profilesWithEnabledAutoExport)) {
             $this->tpl->setNotification(
                 'No profiles with checkbox Slack ticked!',
@@ -204,6 +251,19 @@ public function getAllProfiles(): array {
         $successCount = 0;
         $failCount = 0;
         $debugInfo = [];
+
+        $useCurrentFormFilters = ! empty($_POST['dateFrom']) || ! empty($_POST['filterSubmit']);
+        $activeProfileName = trim($activeProfileName);
+
+        if ($useCurrentFormFilters && $activeProfileName !== '') {
+            if (isset($profilesWithEnabledAutoExport[$activeProfileName])) {
+                $profilesWithEnabledAutoExport = [$activeProfileName => $profilesWithEnabledAutoExport[$activeProfileName]];
+            }
+        }
+
+        if ($useCurrentFormFilters) {
+            $currentFilters = $this->getFiltersFromRequest();
+        }
 
         foreach ($profilesWithEnabledAutoExport as $profileName => $profile) {
             // Get the project's Slack channel ID
@@ -223,41 +283,64 @@ public function getAllProfiles(): array {
                 continue; // Skip if project has no Slack channel configured
             }
 
-            $profileFilters = $profile['filters'] ?? [];
-            $userId = $profileFilters['userId'] ?? null;
-            if ($userId === 'all' || $userId === '') {
-                $userId = null;
-            } elseif ($userId !== null) {
-                $userId = (int)$userId;
+            if ($useCurrentFormFilters) {
+                $projectFilter = $currentFilters['projectFilter'];
+                $profileProjects = $profile['filters']['projects'] ?? null;
+                if (is_array($profileProjects) && ! empty($profileProjects) && ! (count($profileProjects) === 1 && in_array('-1', $profileProjects, true))) {
+                    $projectFilter = array_map('intval', array_values(array_filter($profileProjects, static fn ($v) => $v !== 0)));
+                    if (empty($projectFilter) || in_array(-1, $projectFilter, true)) {
+                        $projectFilter = -1;
+                    }
+                }
+                [$dateFrom, $dateTo] = $this->resolveDateRangeFromProfile($profile['filters'] ?? []);
+                $filters = [
+                    'dateFrom' => $dateFrom,
+                    'dateTo' => $dateTo,
+                    'projectFilter' => $projectFilter,
+                    'kind' => $currentFilters['kind'],
+                    'userId' => $currentFilters['userId'],
+                    'invEmplCheck' => $currentFilters['invEmplCheck'],
+                    'invCompCheck' => $currentFilters['invCompCheck'],
+                    'ticketParameter' => $currentFilters['ticketParameter'],
+                    'paidCheck' => $currentFilters['paidCheck'],
+                    'clientId' => $currentFilters['clientId'],
+                ];
+                $reportColumnState = $profile['filters']['columnState'] ?? [];
+            } else {
+                $profileFilters = $profile['filters'] ?? [];
+                $userId = $profileFilters['userId'] ?? null;
+                if ($userId === 'all' || $userId === '') {
+                    $userId = null;
+                } elseif ($userId !== null) {
+                    $userId = (int) $userId;
+                }
+                $currentMonthStart = dtHelper()->userNow()->startOfMonth()->setToDbTimezone();
+                $currentMonthEnd = dtHelper()->userNow()->endOfMonth()->setToDbTimezone();
+                $filters = [
+                    'dateFrom' => $currentMonthStart,
+                    'dateTo' => $currentMonthEnd,
+                    'projectFilter' => $profileFilters['projects'] ?? -1,
+                    'kind' => $profileFilters['kind'] ?? 'all',
+                    'userId' => $userId,
+                    'invEmplCheck' => $profileFilters['invEmpl'] ?? '-1',
+                    'invCompCheck' => $profileFilters['invComp'] ?? '0',
+                    'ticketParameter' => $profileFilters['ticketParameter'] ?? '-1',
+                    'paidCheck' => $profileFilters['paid'] ?? '0',
+                    'clientId' => $profileFilters['clientId'] ?? -1,
+                ];
+                $reportColumnState = $profileFilters['columnState'] ?? [];
             }
 
-            // Always use current month instead of saved dates
-            $currentMonthStart = dtHelper()->userNow()->startOfMonth()->setToDbTimezone();
-            $currentMonthEnd = dtHelper()->userNow()->endOfMonth()->setToDbTimezone();
-
-            $filters = [
-                'dateFrom' => $currentMonthStart,
-                'dateTo' => $currentMonthEnd,
-                'projectFilter' => $profileFilters['projects'] ?? -1,
-                'kind' => $profileFilters['kind'] ?? 'all',
-                'userId' => $userId,
-                'invEmplCheck' => $profileFilters['invEmpl'] ?? '-1',
-                'invCompCheck' => $profileFilters['invComp'] ?? '0',
-                'ticketParameter' => $profileFilters['ticketParameter'] ?? '-1',
-                'paidCheck' => $profileFilters['paid'] ?? '0',
-                'clientId' => $profileFilters['clientId'] ?? -1,
-            ];
-
-            $columnState = $profileFilters['columnState'] ?? [];
-            $reportName = $profile['name'] ?? " ";
-
-            $csvContent = $this->generateCsvString($filters, $columnState);
+            $reportName = $profile['name'] ?? ' ';
+            $csvContent = $this->generateCsvString($filters, $reportColumnState);
 
             if ($this->sendCsvToSlack($csvContent, $reportName, $channelId)) {
                 $successCount++;
             } else {
                 $failCount++;
             }
+
+            sleep(2);
         }
 
         if ($successCount > 0 && $failCount === 0) {
@@ -350,9 +433,8 @@ private function sendCsvToSlack(string $csvContent, string $profileName, string 
 
         if (isset($completeData['ok']) && $completeData['ok']) {
             return true;
-        } else {
-            return false;
         }
+        return false;
 
     } catch (\GuzzleHttp\Exception\GuzzleException $e) {
         report($e);
