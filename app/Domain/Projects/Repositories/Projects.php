@@ -420,6 +420,7 @@ class Projects
 				zp_projects.id,
 				zp_projects.name,
 				zp_projects.projectKey,
+				zp_projects.incrementalTicketId,
 				zp_projects.clientId,
 					zp_projects.details,
 					zp_projects.state,
@@ -666,6 +667,7 @@ class Projects
         $query = 'UPDATE zp_projects SET
 			name = :name,
 			projectKey = :projectKey,
+			incrementalTicketId = :incrementalTicketId,
 			details = :details,
 				clientId = :clientId,
 				state = :state,
@@ -687,6 +689,8 @@ class Projects
         $stmn->bindValue('name', $values['name'], PDO::PARAM_STR);
         $projectKeyValue = $values['projectKey'] ?? null;
         $stmn->bindValue('projectKey', $projectKeyValue, $projectKeyValue === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $incrementalTicketId = isset($values['incrementalTicketId']) && $values['incrementalTicketId'] ? 1 : 0;
+        $stmn->bindValue('incrementalTicketId', $incrementalTicketId, PDO::PARAM_INT);
         $stmn->bindValue('details', $values['details'] ?? '', PDO::PARAM_STR);
         $stmn->bindValue('clientId', $values['clientId'] ?? '', PDO::PARAM_STR);
         $stmn->bindValue('state', $values['state'] ?? '', PDO::PARAM_STR);

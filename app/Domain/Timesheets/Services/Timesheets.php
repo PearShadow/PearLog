@@ -406,6 +406,8 @@ class Timesheets
                     'ticketId' => $timesheet['ticketId'],
                     'projectId' => $timesheet['projectId'],
                     'projectKey' => $timesheet['projectKey'],
+                    'incrementalTicketId' => $timesheet['incrementalTicketId'] ?? 1,
+                    'projectTicketNumber' => $timesheet['projectTicketNumber'] ?? null,
                     'hasTimesheetOffset' => $workdateOffsetStart !== 0,
                     'day1' => [
                         'start' => $fromDate,
