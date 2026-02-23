@@ -59,6 +59,8 @@ class Timesheets extends Repository
                     zp_projects.name,
                     zp_projects.id AS projectId,
                     zp_projects.projectKey AS projectKey,
+                    COALESCE(zp_projects.incrementalTicketId, 1) AS incrementalTicketId,
+                    (SELECT COUNT(*) FROM zp_tickets t2 WHERE t2.projectId = zp_tickets.projectId AND t2.id <= zp_tickets.id) AS projectTicketNumber,
                     zp_clients.name AS clientName,
                     zp_clients.id AS clientId,
                     zp_timesheets.invoicedEmpl,
@@ -320,6 +322,8 @@ class Timesheets extends Repository
             zp_projects.name,
             zp_projects.id AS projectId,
             zp_projects.projectKey AS projectKey,
+            COALESCE(zp_projects.incrementalTicketId, 1) AS incrementalTicketId,
+            (SELECT COUNT(*) FROM zp_tickets t2 WHERE t2.projectId = zp_tickets.projectId AND t2.id <= zp_tickets.id) AS projectTicketNumber,
             zp_projects.clientId AS clientId,
             zp_clients.name AS clientName
         FROM
