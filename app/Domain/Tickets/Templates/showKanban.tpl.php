@@ -266,7 +266,12 @@ $tpl->dispatchTplEvent('filters.beforeLefthandSectionClose');
                                                         <small><a href="#/tickets/showTicket/<?= $row['dependingTicketId'] ?>" class="form-modal"><?= $tpl->escape($row['parentHeadline']) ?></a></small> //
                                                     <?php } ?>
                                                     <small><i class="fa <?php echo $todoTypeIcons[strtolower($row['type'])]; ?>"></i></small>
-                                                    <small><?php echo (!empty($row['projectKey']) ? $row['projectKey'] . '-' : '#') . $row['id']; ?></small>
+                                                    <small><?php
+                                                        $useIncremental = isset($row['incrementalTicketId']) && (int) $row['incrementalTicketId'] === 1;
+                                                        $displayNum = $useIncremental && isset($row['projectTicketNumber']) ? (int) $row['projectTicketNumber'] : $row['id'];
+                                                        $prefix = !empty($row['projectKey']) ? $row['projectKey'] . '-' : '#';
+                                                        echo $prefix . $displayNum;
+                                                    ?></small>
                                                     <div class="kanbanCardContent">
                                                         <h4>
                                                             <?php if (isset($row['pinned']) && $row['pinned']) { ?>

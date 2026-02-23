@@ -66,6 +66,23 @@ $menuTypes = $tpl->get('menuTypes');
             </div>
             <div class="row">
                 <div class="col-md-12">
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: nowrap;">
+                            <input type="checkbox" name="incrementalTicketId" id="incrementalTicketId" value="1"
+                                <?php if (!empty($project['incrementalTicketId'])) { echo ' checked="checked"'; } ?>
+                                style="margin: 0; flex-shrink: 0; width: 1.25rem; height: 1.25rem;" />
+                            <label for="incrementalTicketId" style="font-weight: 600; margin: 0; cursor: pointer; white-space: nowrap; flex-shrink: 0;">
+                                <?php $incCheckLabel = $tpl->__('label.incremental_ticket_id_enable'); echo $incCheckLabel === 'label.incremental_ticket_id_enable' ? 'Enable incremental project ticket numbering' : $incCheckLabel; ?>
+                            </label>
+                        </div>
+                        <p class="text-muted" style="display">
+                            <?php $incDesc = $tpl->__('label.incremental_ticket_id_description'); echo $incDesc === 'label.incremental_ticket_id_description' ? 'Incremental ticket numbering (1, 2, 3...) for this project. When disabled, tickets use a different ID scheme.' : $incDesc; ?>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
                     <p>
                         <?php echo $tpl->__('label.accomplish'); ?>
                         <br /><br />

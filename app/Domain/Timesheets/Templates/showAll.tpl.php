@@ -482,16 +482,13 @@ foreach ($tpl->get('allTimesheets') as $row) {
                                 #<?= $row['id']?>
                                 <?php } ?>
                         </td>
-                        <td data-order="<?php echo !empty($row['projectKey']) ? $tpl->escape($row['projectKey']) . '-' . $tpl->escape($row['ticketId']) : '#' . $tpl->escape($row['ticketId']); ?>">
-                                <a href="#/tickets/showTicket/<?php echo $row['ticketId']; ?>">
-                                    <?php
-                                    if (!empty($row['projectKey'])) {
-                                        echo $tpl->escape($row['projectKey']) . '-' . $tpl->escape($row['ticketId']);
-                                    } else {
-                                        echo '#' . $tpl->escape($row['ticketId']);
-                                    }
-                                    ?>
-                                </a>
+                        <?php
+                                    $useIncremental = isset($row['incrementalTicketId']) && (int) $row['incrementalTicketId'] === 1;
+                                    $displayNum = $useIncremental && isset($row['projectTicketNumber']) ? (int) $row['projectTicketNumber'] : $row['ticketId'];
+                                    $ticketDisplayId = (!empty($row['projectKey']) ? $row['projectKey'] . '-' : '#') . $displayNum;
+                                ?>
+                        <td data-order="<?= $tpl->escape($ticketDisplayId); ?>">
+                                <a href="#/tickets/showTicket/<?php echo $row['ticketId']; ?>"><?= $tpl->escape($ticketDisplayId); ?></a>
                         </td>
                         <td data-order="<?= $tpl->escape($row['workDate']); ?>">
                                 <?php echo format($row['workDate'])->date(); ?>
