@@ -60,6 +60,16 @@ $values = $tpl->get('values');
                 jQuery.growl({ message: "Could not save time entry", style: "error" });
             });
         });
+        jQuery(document).ready(function() {
+    jQuery('a.delete.editTimeModal').on('click', function(e) {
+        e.preventDefault();
+        var deleteUrl = jQuery(this).attr('href');
+        var parentParams = '';
+        if (window.parent && window.parent.location) {
+            parentParams = window.parent.location.search;
+        }
+        window.parent.location.href = deleteUrl + (parentParams ? '?' + parentParams.substring(1) : '');
+    });
 });
 
 </script>
