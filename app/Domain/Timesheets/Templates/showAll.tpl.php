@@ -73,6 +73,59 @@ $hoursFormat = session('usersettings.hours_format', 'decimal');
     }
 
     jQuery(document).ready(function(){
+    function saveFilterState() {
+        var formData = jQuery('#form').serialize();
+        localStorage.setItem('timesheetFilterState', formData);
+    }
+
+    jQuery('#form').on('submit', saveFilterState);
+    jQuery('#form select, #form input[type="checkbox"]').on('change', saveFilterState);
+    document.getElementById('form').addEventListener('submit', saveFilterState, true);
+
+function restoreFilters() {
+        var savedState = localStorage.getItem('timesheetFilterState');
+        if (!savedState) return;
+
+        var params = new URLSearchParams(savedState);
+
+        jQuery('#form input[type="checkbox"]').prop('checked', false);
+
+        params.forEach(function(value, key) {
+            var safeKey = key.replace(/([\[\]])/g, '\\$1');
+            var fields = jQuery('#form [name="' + safeKey + '"]');
+            if (fields.length && fields.first().is(':checkbox')) {
+                fields.each(function() {
+                    if (this.value === value) this.checked = true;
+                });
+            } else {
+                fields.val(value);
+            }
+        });
+
+        jQuery('#allTimesheetsTable tbody').css('opacity', '0.3');
+        jQuery('#allTimesheetsTable tbody').css('pointer-events', 'none');
+
+        jQuery('#form').submit();
+    }
+
+    var _wentToTicket = false;
+
+    jQuery(window).on('hashchange', function() {
+        var hash = window.location.hash;
+
+        if (hash.indexOf('/tickets/showTicket/') !== -1) {
+            _wentToTicket = true;
+            saveFilterState();
+        } else if (_wentToTicket) {
+            _wentToTicket = false;
+            restoreFilters();
+        }
+    });
+
+    var isPostBack = <?php echo !empty($_POST) ? 'true' : 'false'; ?>;
+    if (!isPostBack) {
+        restoreFilters();
+    }
         jQuery("#checkAllEmpl").change(function(){
             jQuery(".invoicedEmpl").prop('checked', jQuery(this).prop("checked"));
             if (jQuery(this).prop("checked") == true) {
