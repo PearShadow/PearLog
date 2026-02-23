@@ -35,8 +35,10 @@ $todoTypeIcons = $tpl->get('ticketTypeIcons');
             <i class="fa <?php echo $todoTypeIcons[strtolower($ticket->type)]; ?>"></i>
             <?php
             $projectKey = $ticket->projectKey ?? $projectData['projectKey'] ?? '';
+            $useIncremental = isset($ticket->incrementalTicketId) && (int) $ticket->incrementalTicketId === 1;
+            $displayNum = $useIncremental && isset($ticket->projectTicketNumber) ? (int) $ticket->projectTicketNumber : $ticket->id;
             echo !empty($projectKey) ? $projectKey . '-' : '#';
-            ?><?= $ticket->id ?> - <?php $tpl->e($ticket->headline); ?>
+            ?><?= $displayNum ?> - <?php $tpl->e($ticket->headline); ?>
             <i class="fa fa-clone"
                style="cursor: pointer; margin-left: 10px; font-size: 0.8em; color: #666;"
                title="Copy ticket URL"

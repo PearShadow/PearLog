@@ -136,11 +136,10 @@ $tpl->dispatchTplEvent('filters.beforeLefthandSectionClose');
                             <?php $tpl->dispatchTplEvent('allTicketsTable.afterRowStart', ['rowNum' => $rowNum, 'tickets' => $allTickets]); ?>
                             <td data-order="<?= $tpl->e($row['id']); ?>">
                                 <?php
-                                if (!empty($row['projectKey'])) {
-                                    echo $tpl->escape($row['projectKey']) . '-' . $tpl->escape($row['id']);
-                                } else {
-                                    echo '#' . $tpl->escape($row['id']);
-                                }
+                                $useIncremental = isset($row['incrementalTicketId']) && (int) $row['incrementalTicketId'] === 1;
+                                $displayNum = $useIncremental && isset($row['projectTicketNumber']) ? (int) $row['projectTicketNumber'] : $row['id'];
+                                $prefix = !empty($row['projectKey']) ? $tpl->escape($row['projectKey']) . '-' : '#';
+                                echo $prefix . $tpl->escape($displayNum);
                                 ?>
                             </td>
 

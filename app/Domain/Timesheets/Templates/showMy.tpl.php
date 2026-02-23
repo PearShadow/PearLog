@@ -357,12 +357,13 @@ foreach ($tpl->get('allTimesheets') as $timeRow) {
                                 </td>
                                 <td width="5%">
                                     <?php
-                                    $projectKey = $timeRow['projectKey'] ?? '';
+                                    $useIncremental = isset($timeRow['incrementalTicketId']) && (int) $timeRow['incrementalTicketId'] === 1;
+                                    $displayNum = $useIncremental && isset($timeRow['projectTicketNumber']) ? (int) $timeRow['projectTicketNumber'] : $timeRow['ticketId'];
+                                    $ticketDisplayId = (!empty($timeRow['projectKey']) ? $timeRow['projectKey'] . '-' : '#') . $displayNum;
                                     $ticketId = $timeRow['ticketId'];
-                                    $tickIdDisplay = !empty($projectKey) ? $projectKey . '-' . $ticketId : '#' . $ticketId;
                                     ?>
                                     <a href="#/tickets/showTicket/<?php echo $ticketId; ?>">
-                                        <?php echo $tickIdDisplay; ?>
+                                        <?php echo $tpl->escape($ticketDisplayId); ?>
                                     </a>
                                 </td>
                                 <td width="12%"><?php $tpl->e($timeRow['clientName']); ?> // <?php $tpl->e($timeRow['name']); ?></td>

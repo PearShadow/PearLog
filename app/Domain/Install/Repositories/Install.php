@@ -73,6 +73,7 @@ class Install
         30408,
         30409,
         30410,
+        30411,
     ];
 
     /**
@@ -476,6 +477,7 @@ class Install
                     `id` int(11) NOT NULL AUTO_INCREMENT,
                     `name` varchar(100) DEFAULT NULL,
                     `projectKey` varchar(10) DEFAULT NULL,
+                    `incrementalTicketId` tinyint(1) NOT NULL DEFAULT 1,
                     `clientId` int(100) DEFAULT NULL,
                     `details` text,
                     `state` int(2) DEFAULT NULL,
@@ -2122,6 +2124,37 @@ class Install
             }
         }
 
+
+        return count($errors) ? $errors : true;
+    }
+
+    /**
+     * Add incrementalTicketId column to zp_projects table
+     */
+    public function update_sql_30411(): bool|array
+    {
+        $errors = [];
+
+        try {
+            $columnExists = $this->connection->select(
+                "SELECT COUNT(*) as count
+                 FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                 AND TABLE_NAME = 'zp_projects'
+                 AND COLUMN_NAME = 'incrementalTicketId'"
+            );
+
+            if ($columnExists[0]->count == 0) {
+                $this->connection->statement(
+                    'ALTER TABLE `zp_projects` ADD COLUMN `incrementalTicketId` TINYINT(1) NOT NULL DEFAULT 1 AFTER `projectKey`'
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to add incrementalTicketId column: '.$e->getMessage());
+            if (! str_contains($e->getMessage(), 'Duplicate column name')) {
+                array_push($errors, 'Failed to add incrementalTicketId column: '.$e->getMessage());
+            }
+        }
 
         return count($errors) ? $errors : true;
     }

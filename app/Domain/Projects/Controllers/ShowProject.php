@@ -247,6 +247,7 @@ class ShowProject extends Controller
                 $values = [
                     'name' => $_POST['name'],
                     'projectKey' => $projectKey,
+                    'incrementalTicketId' => isset($_POST['incrementalTicketId']) && $_POST['incrementalTicketId'] === '1',
                     'details' => $_POST['details'],
                     'clientId' => $_POST['clientId'],
                     'state' => $_POST['projectState'],
