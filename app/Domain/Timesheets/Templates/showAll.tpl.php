@@ -78,7 +78,13 @@ $hoursFormat = session('usersettings.hours_format', 'decimal');
         localStorage.setItem('timesheetFilterState', formData);
     }
 
-    jQuery('#form').on('submit', saveFilterState);
+    jQuery(document).on('click', 'a[href]', function() {
+        var href = jQuery(this).attr('href');
+        if (!href || href.indexOf('#') === 0) return;
+        if (href.indexOf('timesheets') === -1) {
+            localStorage.removeItem('timesheetFilterState');
+        }
+    });
     jQuery('#form select, #form input[type="checkbox"]').on('change', saveFilterState);
     document.getElementById('form').addEventListener('submit', saveFilterState, true);
 
