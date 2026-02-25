@@ -141,6 +141,7 @@ class Tickets
                     'statusType' => $params['labelType-'.$labelKey] ?? 'NEW',
                     'kanbanCol' => $params['labelKanbanCol-'.$labelKey] ?? false,
                     'sortKey' => $params['labelSort-'.$labelKey] ?? 99,
+                    'slackNotify' => isset($params['labelSlackNotify-'.$labelKey]) && $params['labelSlackNotify-'.$labelKey],
                 ];
             }
 
