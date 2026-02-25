@@ -30,6 +30,7 @@ class Tickets
             'statusType' => 'NEW',
             'kanbanCol' => true,
             'sortKey' => 1,
+            'slackNotify' => false,
         ],
         1 => [
             'name' => 'status.blocked',
@@ -37,6 +38,7 @@ class Tickets
             'statusType' => 'INPROGRESS',
             'kanbanCol' => true,
             'sortKey' => 2,
+            'slackNotify' => false,
         ],
         4 => [
             'name' => 'status.in_progress',
@@ -44,6 +46,7 @@ class Tickets
             'statusType' => 'INPROGRESS',
             'kanbanCol' => true,
             'sortKey' => 3,
+            'slackNotify' => false,
         ],
         2 => [
             'name' => 'status.waiting_for_approval',
@@ -51,6 +54,7 @@ class Tickets
             'statusType' => 'INPROGRESS',
             'kanbanCol' => true,
             'sortKey' => 4,
+            'slackNotify' => false,
         ],
         0 => [
             'name' => 'status.done',
@@ -58,6 +62,7 @@ class Tickets
             'statusType' => 'DONE',
             'kanbanCol' => true,
             'sortKey' => 5,
+            'slackNotify' => false,
         ],
         -1 => [
             'name' => 'status.archived',
@@ -65,6 +70,7 @@ class Tickets
             'statusType' => 'DONE',
             'kanbanCol' => false,
             'sortKey' => 6,
+            'slackNotify' => false,
         ],
     ];
 
@@ -156,6 +162,9 @@ class Tickets
                         }
                     } else {
                         $statusList[$key] = $status;
+                        if (! isset($statusList[$key]['slackNotify'])) {
+                            $statusList[$key]['slackNotify'] = false;
+                        }
                     }
                 }
             }

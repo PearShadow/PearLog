@@ -76,8 +76,16 @@ class Messengers
         $statusLabelsArray = $ticketService->getStatusLabels($notification->projectId);
 
         $slackWebhookURL = $this->settingsRepo->getSetting("projectsettings.{$notification->projectId}.slackWebhookURL");
+        $slackChannelId = $this->settingsRepo->getSetting("projectsettings.{$notification->projectId}.slackChannelId");
 
-        if ($slackWebhookURL !== '' && $slackWebhookURL !== false && !is_array($notification->entity) && (str_contains(strtolower($statusLabelsArray[$notification->entity->status]['name']), 'ready to test') || str_contains(strtolower($statusLabelsArray[$notification->entity->status]['name']), 'qa')) ) {
+        $statusKey = !is_array($notification->entity) ? ($notification->entity->status ?? null) : null;
+        $statusLabel = $statusKey !== null && isset($statusLabelsArray[$statusKey]) ? $statusLabelsArray[$statusKey] : null;
+        $slackNotifyEnabled = $statusLabel !== null && !empty($statusLabel['slackNotify']);
+
+        $slackConfigured = ($slackWebhookURL !== '' && $slackWebhookURL !== false)
+            && ($slackChannelId !== '' && $slackChannelId !== false);
+
+        if ($slackConfigured && !is_array($notification->entity) && $slackNotifyEnabled) {
             $message = $this->prepareMessage($notification);
 
             $entity = $notification->entity;
@@ -91,9 +99,12 @@ class Messengers
 
             $title = $ticketNumber ? "$ticketNumber - $headline" : $headline;
 
+            $statusName = $statusLabel['name'] ?? '';
+            $pretext = session('userdata.name') . ' has moved the ticket to ' . $statusName;
+
             $message[0] = [
-                'pretext'    => session('userdata.name') . " has the ticket ready to test",
-                'fallback'   => session('userdata.name') . " has the ticket ready to test",
+                'pretext'    => $pretext,
+                'fallback'   => $pretext,
                 'title'      => $title,
                 'title_link' => $ticketUrl,
                 'color'      => '#006d9f',

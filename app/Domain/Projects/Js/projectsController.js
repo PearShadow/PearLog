@@ -190,6 +190,18 @@ leantime.projectsController = (function () {
 
         jQuery('#todoStatusList').append("<li>" + statusCopy.html() + "</li>");
 
+        var todosettings = document.getElementById("todosettings");
+        if (todosettings) {
+            var slackEnabled = todosettings.getAttribute("data-slack-enabled") === "1";
+            var lastLi = todosettings.querySelector("#todoStatusList li:last-child");
+            var slackCb = lastLi && lastLi.querySelector(".slack-notify-checkbox");
+            if (slackCb && !slackEnabled) {
+                slackCb.disabled = true;
+                var msg = todosettings.getAttribute("data-slack-channel-required-msg");
+                if (msg) { slackCb.setAttribute("title", msg); }
+            }
+        }
+
         jQuery("#todosettings select.colorChosen").chosen("destroy");
         leantime.projectsController.initSelectFields();
         jQuery("#todoStatusList").sortable("destroy");

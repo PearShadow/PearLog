@@ -310,7 +310,7 @@ $state = $tpl->get('state');
 
             </div>
 
-            <div id="todosettings">
+            <div id="todosettings" data-slack-enabled="<?= !empty($tpl->get('slackChannelId')) ? '1' : '0'; ?>" data-slack-channel-required-msg="<?= $tpl->e($tpl->__('text.slack_channel_required_for_notify')); ?>">
                 <form action="<?= BASE_URL ?>/projects/showProject/<?php echo $project['id']; ?>#todosettings" method="post">
                     <ul class="sortableTicketList" id="todoStatusList">
                         <?php foreach ($tpl->get('todoStatus') as $key => $ticketStatus) { ?>
@@ -367,12 +367,19 @@ $state = $tpl->get('state');
                                             <label for=""><?= $tpl->__('label.showInKanban'); ?></label>
                                             <input type="checkbox" name="labelKanbanCol-<?= $key?>" id="labelKanbanCol-<?= $key?>" <?= $ticketStatus['kanbanCol'] ? 'checked="checked"' : ''; ?>/>
                                         </div>
-                                        <div class="remove">
-                                            <br />
+                                        <div class="remove col-md-1" style="min-width: 0; padding-left: 0; display: flex; flex-direction: column; justify-content: center;">
+                                            <label style="height: 1.2em; margin-bottom: 0.25em; visibility: hidden;">&nbsp;</label>
                                             <?php if ($key != -1) { ?>
-                                                <a href="javascript:void(0);" onclick="leantime.projectsController.removeStatus(<?= $key?>)" class="delete"><span class="fa fa-trash"></span></a>
+                                                <a href="javascript:void(0);" onclick="leantime.projectsController.removeStatus(<?= $key?>)" class="delete" style="display: inline-block; line-height: 1;"><span class="fa fa-trash"></span></a>
                                             <?php } ?>
                                         </div>
+                                        
+                                        <div class="col-md-1">
+                                            <?php $slackChannelId = $tpl->get('slackChannelId'); $slackEnabled = !empty($slackChannelId); ?>
+                                            <label for="labelSlackNotify-<?= $key?>"><?= $tpl->__('label.notify_slack'); ?></label>
+                                            <input type="checkbox" name="labelSlackNotify-<?= $key?>" id="labelSlackNotify-<?= $key?>" value="1" <?= !empty($ticketStatus['slackNotify']) ? 'checked="checked"' : ''; ?> <?= !$slackEnabled ? 'disabled title="'. $tpl->e($tpl->__('text.slack_channel_required_for_notify')) .'"' : ''; ?>/>
+                                        </div>
+                                        
                                     </div>
 
                                     <?php if ($key == -1) { ?>
@@ -444,9 +451,13 @@ $state = $tpl->get('state');
             <label for=""><?= $tpl->__('label.showInKanban'); ?></label>
             <input type="checkbox" name="labelKanbanCol-XXNEWKEYXX" id="labelKanbanCol-XXNEWKEYXX"/>
         </div>
-        <div class="remove">
-            <br />
-            <a href="javascript:void(0);" onclick="leantime.projectsController.removeStatus('XXNEWKEYXX')" class="delete"><span class="fa fa-trash"></span></a>
+        <div class="col-md-1 newStatusSlackNotifyCol">
+            <label for="labelSlackNotify-XXNEWKEYXX"><?= $tpl->__('label.notify_slack'); ?></label>
+            <input type="checkbox" name="labelSlackNotify-XXNEWKEYXX" id="labelSlackNotify-XXNEWKEYXX" value="1" class="slack-notify-checkbox"/>
+        </div>
+        <div class="remove col-md-1" style="min-width: 0; padding-left: 0; display: flex; flex-direction: column; justify-content: flex-end;">
+            <label style="height: 1.2em; margin-bottom: 0.25em; visibility: hidden;">&nbsp;</label>
+            <a href="javascript:void(0);" onclick="leantime.projectsController.removeStatus('XXNEWKEYXX')" class="delete" style="display: inline-block; line-height: 1;"><span class="fa fa-trash"></span></a>
         </div>
     </div>
 </div>
