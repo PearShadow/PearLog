@@ -113,5 +113,5 @@ body.colorScheme-themeDefault.colorMode-dark input,
 body.colorScheme-themeDefault.colorMode-dark select,
 body.colorScheme-themeDefault.colorMode-dark textarea,
 body.colorScheme-themeDefault.colorMode-dark .selectableContent {
-    color: white !important;
+    color: #00B3FF !important;
 }
