@@ -380,6 +380,7 @@ private function sendCsvToSlack(string $csvContent, string $profileName, string 
         $filename = "timesheet_{$profileName}_" . date('Y-m-d') . ".csv";
 
         $getUploadUrlResponse = $this->httpClient->post('https://slack.com/api/files.getUploadURLExternal', [
+            'http_errors' => false,
             'headers' => [
                 'Authorization' => "Bearer {$slackBotToken}",
                 'Content-Type' => 'application/x-www-form-urlencoded',
@@ -389,6 +390,15 @@ private function sendCsvToSlack(string $csvContent, string $profileName, string 
                 'length' => strlen($csvContent)
             ]
         ]);
+
+        if ($getUploadUrlResponse->getStatusCode() === 429) {
+            $this->tpl->setNotification(
+                'Slack upload rate exceeded. Please try again later.',
+                'error',
+                'save_timesheet'
+            );
+            return false;
+        }
 
         $uploadUrlData = json_decode($getUploadUrlResponse->getBody()->getContents(), true);
 
@@ -411,6 +421,7 @@ private function sendCsvToSlack(string $csvContent, string $profileName, string 
         }
 
         $completeResponse = $this->httpClient->post('https://slack.com/api/files.completeUploadExternal', [
+            'http_errors' => false,
             'headers' => [
                 'Authorization' => "Bearer {$slackBotToken}",
                 'Content-Type' => 'application/json',
@@ -426,13 +437,23 @@ private function sendCsvToSlack(string $csvContent, string $profileName, string 
                 'initial_comment' => "Monthly Timesheet Report: {$profileName}"
             ]
         ]);
+        
+        if ($completeResponse->getStatusCode() === 429) {
+            $this->tpl->setNotification(
+                'Slack upload rate exceeded. Please try again later.',
+                'error',
+                'save_timesheet'
+            );
+            return false;
+        }
 
         $completeData = json_decode($completeResponse->getBody()->getContents(), true);
 
         if (isset($completeData['ok']) && $completeData['ok']) {
             return true;
+        } else {
+            return false;
         }
-        return false;
 
     } catch (\GuzzleHttp\Exception\GuzzleException $e) {
         report($e);
