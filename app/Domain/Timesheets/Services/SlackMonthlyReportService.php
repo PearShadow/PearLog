@@ -339,8 +339,6 @@ public function getAllProfiles(): array {
             } else {
                 $failCount++;
             }
-
-            sleep(2);
         }
 
         if ($successCount > 0 && $failCount === 0) {
