@@ -72,6 +72,12 @@
 
             <div class="scroll-wrapper">
 
+                <div style="display: flex; justify-content: flex-end; padding: 5px 10px;">
+                    <a href="javascript:void(0);" id="clearAllNotifications" style="font-size: 12px; color: var(--primary-font-color)">
+                        {{ __('text.clear_all') ?? 'Clear all' }}
+                    </a>
+                </div>
+
                 <ul id='notificationsList' class='notificationViewLists'>
                     @if ($totalNotificationCount === 0)
                         <p style='padding: 10px'>{{ __('text.no_notifications') }}</p>
@@ -310,6 +316,25 @@
 
                     window.location.href = url;
                 })
+                
+                jQuery('#clearAllNotifications').on('click', function (e) {
+                    e.stopPropagation();
+
+                    jQuery.ajax({
+                        type: 'PATCH',
+                        url: leantime.appUrl + '/api/notifications',
+                        data: {
+                            id: 'all',
+                            action: 'read'
+                        }
+                    }).done(function () {
+                        jQuery("#notificationsDropdown .notificationViewLists li.new").removeClass("new");
+                        jQuery("#notificationsDropdown .notificationCounter").fadeOut();
+                        jQuery('.notificationCounter').fadeOut();
+                    });
+                });
+                
+                
             });
         </script>
     @endpush
