@@ -315,6 +315,18 @@ $hoursFormat = session('usersettings.hours_format', 'decimal');
                         </select>
                     </td>
                     <td style="vertical-align: top;">
+    <label for="milestoneFilter"><?php echo $tpl->__('label.milestone'); ?></label>
+    <select name="milestoneId" id="milestoneFilter" onchange="submit();" style="max-width:120px;">
+        <option value="-1"><?php echo "None selected" ?></option>
+        <?php foreach ($tpl->get('allMilestones') as $milestone) { ?>
+            <option value="<?= $milestone['id'] ?>"
+                <?php if ($tpl->get('milestoneFilter') == $milestone['id']) echo 'selected="selected"'; ?>>
+                <?= $tpl->escape($milestone['headline']) ?>
+            </option>
+        <?php } ?>
+    </select>
+</td>
+                    <td style="vertical-align: top;">
                         <input type="checkbox" value="1" name="invEmpl" id="invEmpl" onclick="submit();"
                             <?php
 if ($tpl->get('invEmpl') == '1') {
