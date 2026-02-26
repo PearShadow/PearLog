@@ -37,7 +37,7 @@ class Timesheets extends Repository
      *
      * @return array|false An array of timesheets or false if there was an error
      */
-    public function getAll(int|array|null $id, ?string $kind, ?CarbonInterface $dateFrom, ?CarbonInterface $dateTo, ?int $userId, ?string $invEmpl, ?string $invComp, ?string $paid, ?int $clientId, ?int $ticketFilter): array|false
+    public function getAll(int|array|null $id, ?string $kind, ?CarbonInterface $dateFrom, ?CarbonInterface $dateTo, ?int $userId, ?string $invEmpl, ?string $invComp, ?string $paid, ?int $clientId, ?int $ticketFilter, int $milestoneId = -1): array|false
     {
         $sanitizedProjectIds = [];
         $singleProjectId = null;
@@ -126,6 +126,9 @@ class Timesheets extends Repository
         if ($paid == '1') {
             $query .= ' AND (zp_timesheets.paid = 1)';
         }
+        if ($milestoneId > 0) {
+    $query .= ' AND (zp_tickets.milestoneid = :milestoneId)';
+}
 
         $query .= ' GROUP BY
             zp_timesheets.id,
@@ -165,6 +168,9 @@ class Timesheets extends Repository
 
         if ($userId != 'all' && $userId != null) {
             $call->bindValue(':userId', $userId);
+        }
+        if ($milestoneId > 0) {
+            $call->bindValue(':milestoneId', $milestoneId, PDO::PARAM_INT);
         }
 
         return $call->fetchAll();
