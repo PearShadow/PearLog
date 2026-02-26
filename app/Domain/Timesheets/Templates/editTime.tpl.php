@@ -71,7 +71,7 @@ $values = $tpl->get('values');
         window.parent.location.href = deleteUrl + (parentParams ? '?' + parentParams.substring(1) : '');
     });
 });
-
+});
 </script>
 
 <?php echo $tpl->displayNotification() ?>
