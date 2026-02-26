@@ -164,6 +164,26 @@ class ShowAll extends Controller
                 }
             }
         }
+$milestoneFilter = -1;
+if (! empty($_POST['milestoneId'])) {
+    $milestoneFilter = (int) strip_tags($_POST['milestoneId']);
+}
+
+$milestonesProject = is_array($projectFilter) ? -1 : (int) $projectFilter;
+if ($milestonesProject > 0) {
+    $allMilestones = $this->ticketService->getAllMilestones([
+        'currentProject' => $milestonesProject
+    ]);
+} else {
+    $allMilestones = $this->ticketService->getAll([
+        'type' => 'milestone',
+        'currentProject' => '',
+        'excludeType' => '',
+        'currentUser' => ''
+    ]);
+}
+$this->tpl->assign('milestoneFilter', $milestoneFilter);
+$this->tpl->assign('allMilestones', $allMilestones);
 
         $user = app()->make(UserRepository::class);
         $employees = $user->getAll();
@@ -208,7 +228,8 @@ class ShowAll extends Controller
             $invCompCheck,
             $ticketParameter,
             $paidCheck,
-            $clientId
+            $clientId,
+            $milestoneFilter
         ));
 
         // Pass user's hours format preference to template for CSV export
