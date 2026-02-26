@@ -2127,10 +2127,7 @@ class Install
 
         return count($errors) ? $errors : true;
     }
-
-    /**
-     * Add incrementalTicketId column to zp_projects table
-     */
+    
     public function update_sql_30411(): bool|array
     {
         $errors = [];
