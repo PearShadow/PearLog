@@ -524,3 +524,17 @@ body.mce-content-body div[class^="col-md-"] {
 .tox :not(svg) .fa-solid {
     font-family: 'Font Awesome 6 Free';
 }
+.advTemplates > .l .tox-listboxfield {
+    width: 100%;
+}
+
+.advTemplates > .l .tox-listbox--select {
+    width: 100%;
+}
+.advTemplates > .l .tox-form__group {
+    font-style: italic;
+    margin-top: 15px;
+    width: auto;
+    display: flex;
+    cursor: pointer;
+}
