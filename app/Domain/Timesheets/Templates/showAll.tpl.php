@@ -221,7 +221,7 @@ function restoreFilters() {
 
 <!--this is MAIN content-->
 <div class="maincontent">
-    <div class="maincontentinner">
+    <div class="maincontentinner" style="overflow-x:auto;">
         <div style="float:left;">
             <?php echo $tpl->displayNotification() ?>
             <button type="submit" form="form" formaction="<?= BASE_URL ?>/timesheets/slackMonthlyReportController/sendCsvFromUsersProfilesWhichHaveTickboxTrue" class="dt-button" id="exportToSlackBtn" style="padding: 4px 14px;">
@@ -240,7 +240,7 @@ function restoreFilters() {
             ?>
 
             <div class="clearfix"></div>
-            <div class="headtitle" style="">
+            <div class="headtitle"   >
 
             <table cellpadding="10" cellspacing="0" width="90%" class="table dataTable filterTable">
                 <tr>
@@ -421,7 +421,7 @@ if ($tpl->get('paid') == '1') {
                 </tr>
             </table>
             </div>
-            <div style = "overflow-x:auto;">
+            <div>
             <table cellpadding="0" cellspacing="0" border="0" class="table table-bordered display" id="allTimesheetsTable" data-hours-format="<?= $tpl->escape($hoursFormat); ?>">
                 <colgroup>
                       <col class="con0" width="100px"/>
