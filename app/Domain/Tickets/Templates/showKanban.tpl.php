@@ -418,8 +418,14 @@ $tpl->dispatchTplEvent('filters.beforeLefthandSectionClose');
                                                     <?php if ($row['tags'] != '') {?>
                                                         <?php $tagsArray = explode(',', $row['tags']); ?>
                                                         <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown">
-                                                            <i class="fa fa-tags" aria-hidden="true"></i> <?= count($tagsArray)?>
+                                                            <i class="fa fa-tags" aria-hidden="true"></i>
                                                         </a>
+                                                        <?php
+                                                            $tagsArray = explode(',', $row['tags']);
+                                                            $tags = array_slice($tagsArray, 0, 3);
+                                                            $tags = array_map(fn($tag) => htmlspecialchars(trim($tag)), $tags);
+                                                            echo implode(', ', $tags);
+                                                        ?>
                                                         <ul class="dropdown-menu ">
                                                             <li style="padding:10px"><div class='tagsinput readonly'>
                                                             <?php
