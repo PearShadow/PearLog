@@ -714,6 +714,17 @@ class Tickets
         // Sort main groups
 
         switch ($searchCriteria['groupBy']) {
+            case 'editorId':
+                $currentUserId = (string) session('userdata.id');
+                if (isset($ticketGroups[$currentUserId])) {
+                    $currentUserGroup = $ticketGroups[$currentUserId];
+                    unset($ticketGroups[$currentUserId]);
+                    $ticketGroups = array_sort($ticketGroups, 'label');
+                    $ticketGroups = [$currentUserId => $currentUserGroup] + $ticketGroups;
+                } else {
+                    $ticketGroups = array_sort($ticketGroups, 'label');
+                }
+                break;
             case 'status':
             case 'priority':
             case 'storypoints':
