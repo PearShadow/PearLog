@@ -1,16 +1,14 @@
 body.colorScheme-grayscale1.colorMode-light,
+body.colorScheme-grayscale1.colorMode-light h1,
 body.colorScheme-grayscale1.colorMode-light h2,
 body.colorScheme-grayscale1.colorMode-light h3,
 body.colorScheme-grayscale1.colorMode-light h4,
 body.colorScheme-grayscale1.colorMode-light h5,
 body.colorScheme-grayscale1.colorMode-light h6,
 body.colorScheme-grayscale1.colorMode-light p,
-body.colorScheme-grayscale1.colorMode-light td,
-body.colorScheme-grayscale1.colorMode-light th,
 body.colorScheme-grayscale1.colorMode-light label,
 body.colorScheme-grayscale1.colorMode-light select,
-body.colorScheme-grayscale1.colorMode-light textarea,
-body.colorScheme-grayscale1.colorMode-light .selectableContent {
+body.colorScheme-grayscale1.colorMode-light textarea  {
     color: black !important;
 }
 
@@ -35,6 +33,20 @@ body.colorScheme-grayscale1.colorMode-dark button,
 body.colorScheme-grayscale1.colorMode-dark .selectableContent {
     color: white !important;
 }
+body.colorScheme-grayscale1.colorMode-dark button,
+body.colorScheme-grayscale1.colorMode-dark .daterangepicker, 
+body.colorScheme-grayscale1.colorMode-dark .table-condensed thead tr th,
+body.colorScheme-grayscale1.colorMode-dark .table-condensed,
+body.colorScheme-grayscale1.colorMode-dark .off.ends.in-range.available,
+body.colorScheme-grayscale1.colorMode-dark .off.ends.in-range.available,
+body.colorScheme-grayscale1.colorMode-dark .off.ends.available {
+    background-color: #292929 !important;
+}
+
+body.colorScheme-grayscale1.colorMode-dark .in-range.available,
+body.colorScheme-grayscale1.colorMode-dark li {
+    background-color: black!important;
+}
 
 body.colorScheme-grayscale2.colorMode-light,
 body.colorScheme-grayscale2.colorMode-light h1,
@@ -53,12 +65,12 @@ body.colorScheme-grayscale2.colorMode-light li,
 body.colorScheme-grayscale2.colorMode-light input,
 body.colorScheme-grayscale2.colorMode-light select,
 body.colorScheme-grayscale2.colorMode-light textarea,
-body.colorScheme-grayscale2.colorMode-light button,
-body.colorScheme-grayscale2.colorMode-light .selectableContent {
+body.colorScheme-grayscale2.colorMode-dark li,
+body.colorScheme-grayscale2.colorMode-light .selectableContent
+ {
     color: black !important;
 }
 
-body.colorScheme-grayscale2.colorMode-dark,
 body.colorScheme-grayscale2.colorMode-dark h1,
 body.colorScheme-grayscale2.colorMode-dark h2,
 body.colorScheme-grayscale2.colorMode-dark h3,
@@ -66,18 +78,14 @@ body.colorScheme-grayscale2.colorMode-dark h4,
 body.colorScheme-grayscale2.colorMode-dark h5,
 body.colorScheme-grayscale2.colorMode-dark h6,
 body.colorScheme-grayscale2.colorMode-dark p,
-body.colorScheme-grayscale2.colorMode-dark span,
-body.colorScheme-grayscale2.colorMode-dark td,
-body.colorScheme-grayscale2.colorMode-dark th,
-body.colorScheme-grayscale2.colorMode-dark label,
 body.colorScheme-grayscale2.colorMode-dark a,
-body.colorScheme-grayscale2.colorMode-dark li,
-body.colorScheme-grayscale2.colorMode-dark input,
+body.colorScheme-grayscale2.colorMode-dark span,
 body.colorScheme-grayscale2.colorMode-dark select,
-body.colorScheme-grayscale2.colorMode-dark textarea,
-body.colorScheme-grayscale2.colorMode-dark button,
-body.colorScheme-grayscale2.colorMode-dark .selectableContent {
+body.colorScheme-grayscale2.colorMode-dark textarea {
     color: white !important;
+}
+body.colorScheme-grayscale2.colorMode-dark button {
+    background-color: #292929 !important;
 }
 
 body.colorScheme-themeDefault.colorMode-light,
@@ -114,4 +122,17 @@ body.colorScheme-themeDefault.colorMode-dark select,
 body.colorScheme-themeDefault.colorMode-dark textarea,
 body.colorScheme-themeDefault.colorMode-dark .selectableContent {
     color: #00B3FF !important;
+}
+
+body.colorScheme-grayscale1.colorMode-light .project-checkbox-dropdown {
+    background-color: white !important;
+}
+
+body.colorScheme-grayscale1.colorMode-light .project-checkbox-dropdown label {
+    background-color: white !important;
+    color: black !important;
+}
+
+body.colorScheme-grayscale1.colorMode-light .project-checkbox-dropdown label:first-child {
+    background-color: #f7f9fc !important;
 }
