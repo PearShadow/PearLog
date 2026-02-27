@@ -479,13 +479,7 @@ private function generateCsvString(array $filters, array $columnState = []): str
         return strtotime($a['workDate']) <=> strtotime($b['workDate']);
     });
 
-    $userId = $filters['userId'] ?? session('userdata.id');
-    $hoursFormat = 'decimal';
-    if ($userId) {
-        $settingsService = app()->make(\Leantime\Domain\Setting\Services\Setting::class);
-        $hoursFormat = $settingsService->getSetting('usersettings.'.$userId.'.hours_format', 'decimal');
-    }
-
+   
     $hourTypes = $this->timesheetsService->getBookedHourTypes();
 
     $allColumns = [
@@ -530,9 +524,9 @@ private function generateCsvString(array $filters, array $columnState = []): str
             'tickId' => $row['ticketId'],
             'date' => format($row['workDate'])->date(),
             'ticket' => $row['headline'] ?? '',
-            'hours' => format_hours($row['hours'], $hoursFormat),
-            'planHours' => format_hours($row['planHours'], $hoursFormat),
-            'difference' => format_hours($diff, $hoursFormat),
+            'hours' => format_hours($row['hours']),
+            'planHours' => format_hours($row['planHours']),
+            'difference' => format_hours($diff),
             'project' => $row['name'] ?? '',
             'client' => $row['clientName'] ?? '',
             'employee' => ($row['firstname'] ?? '') . ' ' . ($row['lastname'] ?? ''),
@@ -554,7 +548,7 @@ private function generateCsvString(array $filters, array $columnState = []): str
         'tickId' => '',
         'date' => '',
         'ticket' => '',
-        'hours' => format_hours($totalHours, $hoursFormat),
+        'hours' => format_hours($totalHours),
         'planHours' => '',
         'difference' => '',
         'project' => '',
