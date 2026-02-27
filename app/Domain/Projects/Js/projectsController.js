@@ -193,12 +193,12 @@ leantime.projectsController = (function () {
         var todosettings = document.getElementById("todosettings");
         if (todosettings) {
             var slackEnabled = todosettings.getAttribute("data-slack-enabled") === "1";
-            var lastLi = todosettings.querySelector("#todoStatusList li:last-child");
-            var slackCb = lastLi && lastLi.querySelector(".slack-notify-checkbox");
-            if (slackCb && !slackEnabled) {
-                slackCb.disabled = true;
+            var lastLine = todosettings.querySelector("#todoStatusList li:last-child");
+            var slackCheckbox = lastLine && lastLine.querySelector(".slack-notify-checkbox");
+            if (slackCheckbox && !slackEnabled) {
+                slackCheckbox.disabled = true;
                 var msg = todosettings.getAttribute("data-slack-channel-required-msg");
-                if (msg) { slackCb.setAttribute("title", msg); }
+                if (msg) { slackCheckbox.setAttribute("title", msg); }
             }
         }
 
