@@ -40,6 +40,7 @@ class AuthCheck
         'cron.run',
         'auth.callback',
         'auth.redirect',
+        'api.timelogs',
     ];
 
     public function __construct(
