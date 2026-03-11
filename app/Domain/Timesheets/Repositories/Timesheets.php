@@ -43,7 +43,7 @@ class Timesheets extends Repository
         $singleProjectId = null;
 
         if (is_array($id)) {
-            $sanitizedProjectIds = array_values(array_filter(array_map(static fn ($value) => (int) $value, $id), static fn ($value) => $value > 0));
+            $sanitizedProjectIds = array_values(array_filter(array_map(static fn($value) => (int) $value, $id), static fn($value) => $value > 0));
         } else {
             $singleProjectId = (int) $id;
         }
@@ -91,10 +91,10 @@ class Timesheets extends Repository
             $projectPlaceholders = [];
 
             foreach ($sanitizedProjectIds as $index => $projectId) {
-                $projectPlaceholders[] = ':projectId'.$index;
+                $projectPlaceholders[] = ':projectId' . $index;
             }
 
-            $query .= ' AND (zp_tickets.projectId IN ('.implode(',', $projectPlaceholders).'))';
+            $query .= ' AND (zp_tickets.projectId IN (' . implode(',', $projectPlaceholders) . '))';
         } elseif ($singleProjectId > 0) {
             $query .= ' AND (zp_tickets.projectId = :projectId)';
         }
@@ -129,8 +129,8 @@ class Timesheets extends Repository
             $query .= ' AND (zp_timesheets.paid = 1)';
         }
         if ($milestoneId > 0) {
-    $query .= ' AND (zp_tickets.milestoneid = :milestoneId)';
-}
+            $query .= ' AND (zp_tickets.milestoneid = :milestoneId)';
+        }
 
         $query .= ' GROUP BY
             zp_timesheets.id,
@@ -154,7 +154,7 @@ class Timesheets extends Repository
 
         if (! empty($sanitizedProjectIds)) {
             foreach ($sanitizedProjectIds as $index => $projectId) {
-                $call->bindValue(':projectId'.$index, $projectId, PDO::PARAM_INT);
+                $call->bindValue(':projectId' . $index, $projectId, PDO::PARAM_INT);
             }
         } elseif ($singleProjectId > 0) {
             $call->bindValue(':projectId', $singleProjectId, PDO::PARAM_INT);
@@ -746,9 +746,9 @@ class Timesheets extends Repository
         $workDateTime = new \DateTime($values['date']);
         $currentTime = new \DateTime('now');
 
-        $currentHours = $currentTime -> format('H');
-        $currentMinutes = $currentTime -> format('i');
-        $currentSeconds = $currentTime -> format('s');
+        $currentHours = $currentTime->format('H');
+        $currentMinutes = $currentTime->format('i');
+        $currentSeconds = $currentTime->format('s');
 
         $workDateTime->setTime($currentHours, $currentMinutes, $currentSeconds);
 
@@ -1128,5 +1128,29 @@ class Timesheets extends Repository
         $call->prepare($query);
 
         $call->execute();
+    }
+
+    public function getTimesheetsByUserAndDate(int $userId, string $date): array
+    {
+        $query = 'SELECT
+                zp_timesheets.id,
+                zp_timesheets.hours,
+                zp_timesheets.description,
+                zp_timesheets.workDate,
+                zp_tickets.id AS ticketId,
+                zp_tickets.headline
+              FROM zp_timesheets
+              LEFT JOIN zp_tickets ON zp_timesheets.ticketId = zp_tickets.id
+              WHERE zp_timesheets.userId = :userId
+                AND DATE(zp_timesheets.workDate) = :date
+              ORDER BY zp_tickets.id, zp_timesheets.workDate ASC';
+
+        $call = $this->dbcall(func_get_args());
+        $call->prepare($query);
+        $call->bindValue(':userId', $userId, \PDO::PARAM_INT);
+        $call->bindValue(':date', $date, \PDO::PARAM_STR);
+        $call->execute();
+
+        return $call->fetchAll() ?: [];
     }
 }
