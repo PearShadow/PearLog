@@ -2223,37 +2223,41 @@ private function logPatchChanges($ticketId, $oldValues, $newParams, $oldTicket)
                                 $this->unpinTicket($id, $projectId);
                             }
                         }
+
+                        try {
+                            $ticket = $this->getTicket($id);
+                            if ($ticket) {
+                                $subject = sprintf($this->language->__('email_notifications.todo_update_subject'), $id, strip_tags($ticket->headline));
+                                $actual_link = BASE_URL.'/dashboard/home#/tickets/showTicket/'.$id;
+                                $message = sprintf(
+                                    $this->language->__('email_notifications.todo_status_change_message'),
+                                    session('userdata.name'),
+                                    $newStatusText,
+                                    strip_tags($ticket->headline)
+                                );
+
+                                $notification = app()->make(NotificationModel::class);
+                                $notification->url = [
+                                    'url' => $actual_link,
+                                    'text' => $this->language->__('email_notifications.todo_update_cta'),
+                                ];
+                                $notification->entity = $ticket;
+                                $notification->module = 'tickets';
+                                $notification->projectId = $ticket->projectId ?? session('currentProject') ?? -1;
+                                $notification->subject = $subject;
+                                $notification->authorId = session('userdata.id') ?? -1;
+                                $notification->message = $message;
+
+                                $this->projectService->notifyProjectUsers($notification);
+                            }
+                        } catch (\Exception $e) {
+                            Log::error('Failed to send kanban status change notification: ' . $e->getMessage());
+                        }
                     }
                 }
             }
         }
     }
-
-        if ($handler) {
-            $id = substr($handler, 7);
-
-            $ticket = $this->getTicket($id);
-
-            if ($ticket) {
-                $subject = sprintf($this->language->__('email_notifications.todo_update_subject'), $id, strip_tags($ticket->headline));
-                $actual_link = BASE_URL.'/dashboard/home#/tickets/showTicket/'.$id;
-                $message = sprintf('%1$s has the ticket ready to test: \'%2$s\'', session('userdata.name'), strip_tags($ticket->headline));
-
-                $notification = app()->make(NotificationModel::class);
-                $notification->url = [
-                    'url' => $actual_link,
-                    'text' => $this->language->__('email_notifications.todo_update_cta'),
-                ];
-                $notification->entity = $ticket;
-                $notification->module = 'tickets';
-                $notification->projectId = $ticket->projectId ?? session('currentProject') ?? -1;
-                $notification->subject = $subject;
-                $notification->authorId = session('userdata.id') ?? -1;
-                $notification->message = $message;
-
-                $this->projectService->notifyProjectUsers($notification);
-            }
-        }
 
         self::dispatchEvent('ticket_updated');
 
