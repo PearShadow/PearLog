@@ -87,7 +87,7 @@ class StartSession
         $holdLockFor = $this->calculateLockDuration($request); // Hold lock for x seconds after acquiring
 
         // Maximum time to wait for acquiring the lock if already held
-        $maxWaitForLock = 5; // Wait for up to y seconds to acquire the lock
+        $maxWaitForLock = 1; // Wait for up to y seconds to acquire the lock
 
         $lock = $this->cache($this->manager->blockDriver())
             ->lock('session:'.$session->getId(), $holdLockFor)
@@ -308,6 +308,9 @@ class StartSession
 
     protected function shouldLockSession(IncomingRequest $request)
     {
+        if ($this->isKanbanMoveApiRequest($request)) {
+            return false;
+        }
 
         if (
             $request->isApiOrCronRequest() === false &&
@@ -317,6 +320,25 @@ class StartSession
         }
 
         return false;
+    }
+
+    /**
+     * Kanban move requests can become high-frequency and should not wait on session lock contention.
+     */
+    protected function isKanbanMoveApiRequest(IncomingRequest $request): bool
+    {
+        if (! $request->isApiOrCronRequest() || ! $request->isMethod('POST')) {
+            return false;
+        }
+
+        $path = trim((string) $request->path(), '/');
+        if ($path !== 'api/tickets') {
+            return false;
+        }
+
+        $action = (string) ($request->input('action') ?? '');
+
+        return in_array($action, ['kanbanMoveDelta', 'kanbanSort'], true);
     }
 
     /**

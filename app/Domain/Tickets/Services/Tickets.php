@@ -35,6 +35,8 @@ class Tickets
 {
     use DispatchesEvents;
 
+    private const KANBAN_PAGE_SIZE = 50;
+
     /**
      * Constructor method for the class.
      *
@@ -172,6 +174,11 @@ class Tickets
         }
 
         return $visibleCols;
+    }
+
+    public function getKanbanPageSize(): int
+    {
+        return self::KANBAN_PAGE_SIZE;
     }
 
     /**
@@ -749,6 +756,23 @@ class Tickets
         }
 
         return $ticketGroups;
+    }
+
+    public function getKanbanTicketsForStatus(array $params, int $status, int $limit, int $offset = 0): array
+    {
+        $searchCriteria = $this->prepareTicketSearchArray($params);
+        $searchCriteria['orderBy'] = 'kanbansort';
+        $searchCriteria['status'] = (string) $status;
+        $searchCriteria['afterSortIndex'] = isset($params['afterSortIndex']) ? (int) $params['afterSortIndex'] : null;
+        $searchCriteria['afterTicketId'] = isset($params['afterTicketId']) ? (int) $params['afterTicketId'] : null;
+
+        $tickets = $this->ticketRepository->getKanbanPageBySearchCriteria(
+            $searchCriteria,
+            $limit,
+            $offset
+        );
+
+        return $tickets;
     }
 
     /**
@@ -2173,91 +2197,28 @@ private function logPatchChanges($ticketId, $oldValues, $newParams, $oldTicket)
      */
     public function updateTicketStatusAndSorting($params, $handler = null): bool
     {
-    foreach ($params as $status => $ticketList) {
-        if (is_numeric($status) && ! empty($ticketList)) {
-            $tickets = explode('&', $ticketList);
+        foreach ($params as $status => $ticketList) {
+            if (is_numeric($status) && ! empty($ticketList)) {
+                $parsedTicketList = [];
+                parse_str((string) $ticketList, $parsedTicketList);
+                $tickets = $parsedTicketList['ticket'] ?? [];
 
-            if (is_array($tickets) === true) {
-                foreach ($tickets as $key => $ticketString) {
-                    $id = substr($ticketString, 9);
+                if (! is_array($tickets)) {
+                    return false;
+                }
 
-                    try {
-                        $oldTicket = $this->getTicket($id);
-                        $oldStatus = $oldTicket ? $oldTicket->status : null;
-                    } catch (\Exception $e) {
-                        error_log('Error getting old ticket status: ' . $e->getMessage());
-                        $oldStatus = null;
+                foreach ($tickets as $key => $ticketId) {
+                    $id = (int) $ticketId;
+                    if ($id <= 0) {
+                        continue;
                     }
 
-                        if ($this->ticketRepository->updateTicketStatus($id, $status, ($key * 100), $handler) === false) {
-                            return false;
-                        }
-
-                    if ($oldStatus !== null && $oldStatus != $status) {
-                        try {
-                            $statusLabels = $this->getStatusLabels();
-                            $currentUserName = session('userdata.name') ?? 'Unknown User';
-
-                            $oldStatusText = $statusLabels[$oldStatus]['name'] ?? 'Unknown';
-                            $newStatusText = $statusLabels[$status]['name'] ?? 'Unknown';
-
-                            $ticketHistoryModel = app()->make(\Leantime\Domain\Tickets\Models\TicketHistoryModel::class);
-
-                            $ticketHistoryModel->addStatusChange(
-                                $id,
-                                $oldStatus,
-                                $status,
-                                $oldStatusText,
-                                $newStatusText,
-                                $currentUserName,
-                                'kanban-board'
-                            );
-                        } catch (\Exception $e) {
-                            error_log('Failed to log kanban status change: ' . $e->getMessage());
-                        }
-
-                        // Auto-unpin if moved to different column
-                        if (session()->exists('currentProject')) {
-                            $projectId = (int) session('currentProject');
-                            if ($this->isTicketPinned($id, $projectId)) {
-                                $this->unpinTicket($id, $projectId);
-                            }
-                        }
-
-                        try {
-                            $ticket = $this->getTicket($id);
-                            if ($ticket) {
-                                $subject = sprintf($this->language->__('email_notifications.todo_update_subject'), $id, strip_tags($ticket->headline));
-                                $actual_link = BASE_URL.'/dashboard/home#/tickets/showTicket/'.$id;
-                                $message = sprintf(
-                                    $this->language->__('email_notifications.todo_status_change_message'),
-                                    session('userdata.name'),
-                                    $newStatusText,
-                                    strip_tags($ticket->headline)
-                                );
-
-                                $notification = app()->make(NotificationModel::class);
-                                $notification->url = [
-                                    'url' => $actual_link,
-                                    'text' => $this->language->__('email_notifications.todo_update_cta'),
-                                ];
-                                $notification->entity = $ticket;
-                                $notification->module = 'tickets';
-                                $notification->projectId = $ticket->projectId ?? session('currentProject') ?? -1;
-                                $notification->subject = $subject;
-                                $notification->authorId = session('userdata.id') ?? -1;
-                                $notification->message = $message;
-
-                                $this->projectService->notifyProjectUsers($notification);
-                            }
-                        } catch (\Exception $e) {
-                            Log::error('Failed to send kanban status change notification: ' . $e->getMessage());
-                        }
+                    if ($this->ticketRepository->updateTicketStatus($id, $status, ($key * 100), $handler) === false) {
+                        return false;
                     }
                 }
             }
         }
-    }
 
         self::dispatchEvent('ticket_updated');
 
@@ -2560,7 +2521,34 @@ private function logPatchChanges($ticketId, $oldValues, $newParams, $oldTicket)
         $searchCriteria = $this->prepareTicketSearchArray($params);
         $searchCriteria['orderBy'] = 'kanbansort';
 
-        $allTickets = $this->getAllGrouped($searchCriteria);
+        $kanbanPageSize = self::KANBAN_PAGE_SIZE;
+        $kanbanStatusCounts = [];
+        $usesDefaultKanbanGrouping = $searchCriteria['groupBy'] == null
+            || $searchCriteria['groupBy'] == ''
+            || $searchCriteria['groupBy'] == 'all';
+
+        if ($usesDefaultKanbanGrouping) {
+            $allTickets = [];
+            $kanbanStatusCounts = $this->ticketRepository->getStatusCountsBySearchCriteria($searchCriteria);
+
+            foreach ($this->getKanbanColumns() as $status => $column) {
+                $allTickets = array_merge(
+                    $allTickets,
+                    $this->getKanbanTicketsForStatus($params, (int) $status, $kanbanPageSize)
+                );
+            }
+
+            $allTickets = [
+                'all' => [
+                    'label' => 'all',
+                    'id' => 'all',
+                    'class' => '',
+                    'items' => $allTickets,
+                ],
+            ];
+        } else {
+            $allTickets = $this->getAllGrouped($searchCriteria);
+        }
         $allTicketStates = $this->getStatusLabels();
 
         $efforts = $this->getEffortLabels();
@@ -2602,6 +2590,8 @@ private function logPatchChanges($ticketId, $oldValues, $newParams, $oldTicket)
             'currentSprint' => session('currentSprint'),
             'searchCriteria' => $searchCriteria,
             'allTickets' => $allTickets,
+            'kanbanPageSize' => $kanbanPageSize,
+            'kanbanStatusCounts' => $kanbanStatusCounts,
             'allTicketStates' => $allTicketStates,
             'efforts' => $efforts,
             'priorities' => $priorities,
