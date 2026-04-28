@@ -72,9 +72,8 @@ leantime.kanbanSearch = (function () {
             return [];
         }
 
-        if (!cards.length) {
-            collectCards();
-        }
+        // Keep suggestions synced with dynamically loaded cards.
+        collectCards();
 
         const suggestions = [];
         const seenIds = new Set();
@@ -195,9 +194,8 @@ leantime.kanbanSearch = (function () {
     }
 
     function applyFilter(type, query) {
-        if (!cards.length) {
-            collectCards();
-        }
+        // Rebuild searchable dataset so Enter-search includes lazy-loaded cards.
+        collectCards();
 
         const normalizedQuery = normalize(query);
         currentSearchType = type || 'all';
@@ -239,16 +237,10 @@ leantime.kanbanSearch = (function () {
 
         input.addEventListener('input', function () {
             syncState();
-            const query = input.value.trim();
-            if (query === '') {
+            if (input.value.trim() === '') {
                 currentSearchType = 'all';
                 currentSearchQuery = '';
                 applyFilter('all', '');
-            } else {
-                // Auto-apply filter as user types or deletes
-                currentSearchType = 'all';
-                currentSearchQuery = query;
-                applyFilter('all', query);
             }
         });
     }
