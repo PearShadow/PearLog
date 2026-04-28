@@ -636,6 +636,370 @@ class Tickets
         return $values;
     }
 
+    public function getKanbanPageBySearchCriteria(array $searchCriteria, int $limit, int $offset = 0): array
+    {
+        $query = "
+            SELECT
+                zp_tickets.id,
+                zp_tickets.kanbanSortIndex
+            FROM
+                zp_tickets
+            LEFT JOIN zp_projects ON zp_tickets.projectId = zp_projects.id
+            LEFT JOIN zp_clients ON zp_projects.clientId = zp_clients.id
+            LEFT JOIN zp_user AS requestor ON requestor.id = :requestorId
+            LEFT JOIN zp_relationuserproject AS rup ON zp_tickets.projectId = rup.projectId AND rup.userId = :userId
+            WHERE (
+                rup.projectId IS NOT NULL
+                OR zp_projects.psettings = 'all'
+                OR (zp_projects.psettings = 'clients' AND zp_projects.clientId = :clientId)
+                OR (requestor.role >= 40)
+            )
+        ";
+
+        if (isset($searchCriteria['dateFrom']) && $searchCriteria['dateFrom'] != '') {
+            $query .= ' AND zp_tickets.date > :dateFrom';
+        }
+
+        if (isset($searchCriteria['dateTo']) && $searchCriteria['dateTo'] != '') {
+            $query .= ' AND zp_tickets.date < :dateTo';
+        }
+
+        if (isset($searchCriteria['excludeType']) && $searchCriteria['excludeType'] != '') {
+            $query .= ' AND zp_tickets.type <> :excludeType';
+        }
+
+        if (isset($searchCriteria['currentProject']) && $searchCriteria['currentProject'] != '') {
+            $query .= ' AND zp_tickets.projectId = :projectId';
+        }
+
+        if (isset($searchCriteria['users']) && $searchCriteria['users'] != '') {
+            $editorIdIn = DbCore::arrayToPdoBindingString('users', count(explode(',', $searchCriteria['users'])));
+            $query .= ' AND zp_tickets.editorId IN('.$editorIdIn.')';
+        }
+
+        if (isset($searchCriteria['milestone']) && $searchCriteria['milestone'] != '') {
+            $milestoneIn = DbCore::arrayToPdoBindingString('milestone', count(explode(',', $searchCriteria['milestone'])));
+            $query .= ' AND zp_tickets.milestoneid IN('.$milestoneIn.')';
+        }
+
+        if (isset($searchCriteria['status']) && $searchCriteria['status'] != '') {
+            $query .= ' AND zp_tickets.status = :status0';
+        } else {
+            $query .= ' AND zp_tickets.status <> -1';
+        }
+
+        if (isset($searchCriteria['type']) && $searchCriteria['type'] != '') {
+            $typeIn = DbCore::arrayToPdoBindingString('type', count(explode(',', strtolower($searchCriteria['type']))));
+            $query .= ' AND LOWER(zp_tickets.type) IN('.$typeIn.')';
+        }
+
+        if (isset($searchCriteria['priority']) && $searchCriteria['priority'] != '') {
+            $priorityIn = DbCore::arrayToPdoBindingString('priority', count(explode(',', strtolower($searchCriteria['priority']))));
+            $query .= ' AND LOWER(zp_tickets.priority) IN('.$priorityIn.')';
+        }
+
+        if (isset($searchCriteria['term']) && $searchCriteria['term'] != '') {
+            $query .= ' AND (FIND_IN_SET(:termStandard, zp_tickets.tags) OR zp_tickets.headline LIKE :termWild OR zp_tickets.description LIKE :termWild OR zp_tickets.id LIKE :termWild)';
+        }
+
+        if (isset($searchCriteria['sprint']) && $searchCriteria['sprint'] > 0 && $searchCriteria['sprint'] != 'all') {
+            $sprintIn = DbCore::arrayToPdoBindingString('sprint', count(explode(',', $searchCriteria['sprint'])));
+            $query .= ' AND zp_tickets.sprint IN('.$sprintIn.')';
+        }
+
+        if (isset($searchCriteria['sprint']) && $searchCriteria['sprint'] == 'backlog') {
+            $query .= " AND (zp_tickets.sprint IS NULL OR zp_tickets.sprint = '' OR zp_tickets.sprint = -1)";
+        }
+
+        if (
+            isset($searchCriteria['afterSortIndex'], $searchCriteria['afterTicketId'])
+            && $searchCriteria['afterSortIndex'] !== null
+            && $searchCriteria['afterTicketId'] !== null
+        ) {
+            $query .= ' AND (zp_tickets.kanbanSortIndex > :afterSortIndex OR (zp_tickets.kanbanSortIndex = :afterSortIndex AND zp_tickets.id < :afterTicketId))';
+        }
+
+        $query .= '
+            GROUP BY zp_tickets.id
+            ORDER BY zp_tickets.kanbanSortIndex ASC, zp_tickets.id DESC
+            LIMIT :limit
+        ';
+
+        $query = "
+            SELECT
+                page.id,
+                page.kanbanSortIndex,
+                ticket.headline,
+                ticket.description,
+                ticket.date,
+                ticket.sprint,
+                '' AS sprintName,
+                ticket.storypoints,
+                ticket.sortindex,
+                ticket.dateToFinish,
+                ticket.projectId,
+                ticket.priority,
+                IF(ticket.type <> '', ticket.type, 'task') AS type,
+                ticket.status,
+                ticket.tags,
+                ticket.editorId,
+                ticket.dependingTicketId,
+                ticket.milestoneid,
+                ticket.planHours,
+                ticket.editFrom,
+                ticket.editTo,
+                ticket.hourRemaining,
+                0 AS bookedHours,
+                zp_projects.name AS projectName,
+                zp_projects.projectKey AS projectKey,
+                COALESCE(zp_projects.incrementalTicketId, 1) AS incrementalTicketId,
+                ticket.id AS projectTicketNumber,
+                '' AS clientName,
+                0 AS clientId,
+                0 AS authorId,
+                '' AS authorLastname,
+                '' AS authorFirstname,
+                '' AS authorProfileId,
+                editor.firstname AS editorFirstname,
+                editor.lastname AS editorLastname,
+                editor.profileId AS editorProfileId,
+                milestone.headline AS milestoneHeadline,
+                IF((milestone.tags IS NULL OR milestone.tags = ''), 'var(--grey)', milestone.tags) AS milestoneColor,
+                0 AS commentCount,
+                0 AS fileCount,
+                0 AS subtaskCount,
+                parent.headline AS parentHeadline
+            FROM ({$query}) AS page
+            INNER JOIN zp_tickets AS ticket ON ticket.id = page.id
+            LEFT JOIN zp_projects ON ticket.projectId = zp_projects.id
+            LEFT JOIN zp_user AS editor ON ticket.editorId = editor.id
+            LEFT JOIN zp_tickets AS milestone ON ticket.milestoneid = milestone.id AND ticket.milestoneid > 0 AND milestone.type = 'milestone'
+            LEFT JOIN zp_tickets AS parent ON ticket.dependingTicketId = parent.id
+            ORDER BY page.kanbanSortIndex ASC, ticket.id DESC
+        ";
+
+        $stmn = $this->db->database->prepare($query);
+
+        if (isset($searchCriteria['dateFrom']) && $searchCriteria['dateFrom'] != '') {
+            $stmn->bindValue(':dateFrom', $searchCriteria['dateFrom'], PDO::PARAM_STR);
+        }
+
+        if (isset($searchCriteria['dateTo']) && $searchCriteria['dateTo'] != '') {
+            $stmn->bindValue(':dateTo', $searchCriteria['dateTo'], PDO::PARAM_STR);
+        }
+
+        if (isset($searchCriteria['excludeType']) && $searchCriteria['excludeType'] != '') {
+            $stmn->bindValue(':excludeType', $searchCriteria['excludeType'], PDO::PARAM_STR);
+        }
+
+        if (isset($searchCriteria['currentUser'])) {
+            $stmn->bindValue(':userId', $searchCriteria['currentUser'], PDO::PARAM_INT);
+        } else {
+            $stmn->bindValue(':userId', session('userdata.id') ?? '-1', PDO::PARAM_INT);
+        }
+
+        if (isset($searchCriteria['currentClient'])) {
+            $stmn->bindValue(':clientId', $searchCriteria['currentClient'], PDO::PARAM_INT);
+        } else {
+            $stmn->bindValue(':clientId', session('userdata.clientId') ?? '-1', PDO::PARAM_INT);
+        }
+
+        if (isset($searchCriteria['currentProject']) && $searchCriteria['currentProject'] != '') {
+            $stmn->bindValue(':projectId', $searchCriteria['currentProject'], PDO::PARAM_INT);
+        }
+
+        if (isset($searchCriteria['users']) && $searchCriteria['users'] != '') {
+            foreach (explode(',', $searchCriteria['users']) as $key => $user) {
+                $stmn->bindValue(':users'.$key, $user, PDO::PARAM_STR);
+            }
+        }
+
+        if (isset($searchCriteria['milestone']) && $searchCriteria['milestone'] != '') {
+            foreach (explode(',', $searchCriteria['milestone']) as $key => $milestone) {
+                $stmn->bindValue(':milestone'.$key, $milestone, PDO::PARAM_STR);
+            }
+        }
+
+        if (isset($searchCriteria['status']) && $searchCriteria['status'] != '') {
+            $stmn->bindValue(':status0', $searchCriteria['status'], PDO::PARAM_STR);
+        }
+
+        if (isset($searchCriteria['type']) && $searchCriteria['type'] != '') {
+            foreach (explode(',', $searchCriteria['type']) as $key => $type) {
+                $stmn->bindValue(':type'.$key, $type, PDO::PARAM_STR);
+            }
+        }
+
+        if (isset($searchCriteria['priority']) && $searchCriteria['priority'] != '') {
+            foreach (explode(',', $searchCriteria['priority']) as $key => $priority) {
+                $stmn->bindValue(':priority'.$key, $priority, PDO::PARAM_STR);
+            }
+        }
+
+        if (isset($searchCriteria['sprint']) && $searchCriteria['sprint'] > 0 && $searchCriteria['sprint'] != 'all') {
+            foreach (explode(',', $searchCriteria['sprint']) as $key => $sprint) {
+                $stmn->bindValue(':sprint'.$key, $sprint, PDO::PARAM_STR);
+            }
+        }
+
+        if (isset($searchCriteria['term']) && $searchCriteria['term'] != '') {
+            $termWild = '%'.$searchCriteria['term'].'%';
+            $stmn->bindValue(':termWild', $termWild, PDO::PARAM_STR);
+            $stmn->bindValue(':termStandard', $searchCriteria['term'], PDO::PARAM_STR);
+        }
+
+        if (
+            isset($searchCriteria['afterSortIndex'], $searchCriteria['afterTicketId'])
+            && $searchCriteria['afterSortIndex'] !== null
+            && $searchCriteria['afterTicketId'] !== null
+        ) {
+            $stmn->bindValue(':afterSortIndex', $searchCriteria['afterSortIndex'], PDO::PARAM_INT);
+            $stmn->bindValue(':afterTicketId', $searchCriteria['afterTicketId'], PDO::PARAM_INT);
+        }
+
+        $stmn->bindValue(':requestorId', session('userdata.id') ?? '-1', PDO::PARAM_INT);
+        $stmn->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
+        $stmn->execute();
+
+        $values = $stmn->fetchAll(PDO::FETCH_ASSOC);
+        $stmn->closeCursor();
+
+        return $values;
+    }
+
+    public function getStatusCountsBySearchCriteria(array $searchCriteria): array
+    {
+        $query = "
+            SELECT
+                zp_tickets.status,
+                COUNT(DISTINCT zp_tickets.id) AS total
+            FROM
+                zp_tickets
+            LEFT JOIN zp_projects ON zp_tickets.projectId = zp_projects.id
+            LEFT JOIN zp_clients ON zp_projects.clientId = zp_clients.id
+            LEFT JOIN zp_user AS requestor ON requestor.id = :requestorId
+            LEFT JOIN zp_relationuserproject AS rup ON zp_tickets.projectId = rup.projectId AND rup.userId = :userId
+            WHERE (
+                rup.projectId IS NOT NULL
+                OR zp_projects.psettings = 'all'
+                OR (zp_projects.psettings = 'clients' AND zp_projects.clientId = :clientId)
+                OR (requestor.role >= 40)
+            )
+        ";
+
+        if (isset($searchCriteria['excludeType']) && $searchCriteria['excludeType'] != '') {
+            $query .= ' AND zp_tickets.type <> :excludeType';
+        }
+
+        if (isset($searchCriteria['currentProject']) && $searchCriteria['currentProject'] != '') {
+            $query .= ' AND zp_tickets.projectId = :projectId';
+        }
+
+        if (isset($searchCriteria['users']) && $searchCriteria['users'] != '') {
+            $editorIdIn = DbCore::arrayToPdoBindingString('users', count(explode(',', $searchCriteria['users'])));
+            $query .= ' AND zp_tickets.editorId IN('.$editorIdIn.')';
+        }
+
+        if (isset($searchCriteria['milestone']) && $searchCriteria['milestone'] != '') {
+            $milestoneIn = DbCore::arrayToPdoBindingString('milestone', count(explode(',', $searchCriteria['milestone'])));
+            $query .= ' AND zp_tickets.milestoneid IN('.$milestoneIn.')';
+        }
+
+        if (isset($searchCriteria['type']) && $searchCriteria['type'] != '') {
+            $typeIn = DbCore::arrayToPdoBindingString('type', count(explode(',', strtolower($searchCriteria['type']))));
+            $query .= ' AND LOWER(zp_tickets.type) IN('.$typeIn.')';
+        }
+
+        if (isset($searchCriteria['priority']) && $searchCriteria['priority'] != '') {
+            $priorityIn = DbCore::arrayToPdoBindingString('priority', count(explode(',', strtolower($searchCriteria['priority']))));
+            $query .= ' AND LOWER(zp_tickets.priority) IN('.$priorityIn.')';
+        }
+
+        if (isset($searchCriteria['term']) && $searchCriteria['term'] != '') {
+            $query .= ' AND (FIND_IN_SET(:termStandard, zp_tickets.tags) OR zp_tickets.headline LIKE :termWild OR zp_tickets.description LIKE :termWild OR zp_tickets.id LIKE :termWild)';
+        }
+
+        if (isset($searchCriteria['sprint']) && $searchCriteria['sprint'] > 0 && $searchCriteria['sprint'] != 'all') {
+            $sprintIn = DbCore::arrayToPdoBindingString('sprint', count(explode(',', $searchCriteria['sprint'])));
+            $query .= ' AND zp_tickets.sprint IN('.$sprintIn.')';
+        }
+
+        if (isset($searchCriteria['sprint']) && $searchCriteria['sprint'] == 'backlog') {
+            $query .= " AND (zp_tickets.sprint IS NULL OR zp_tickets.sprint = '' OR zp_tickets.sprint = -1)";
+        }
+
+        $query .= ' AND zp_tickets.status <> -1 GROUP BY zp_tickets.status';
+
+        $stmn = $this->db->database->prepare($query);
+
+        if (isset($searchCriteria['currentUser'])) {
+            $stmn->bindValue(':userId', $searchCriteria['currentUser'], PDO::PARAM_INT);
+        } else {
+            $stmn->bindValue(':userId', session('userdata.id') ?? '-1', PDO::PARAM_INT);
+        }
+
+        if (isset($searchCriteria['currentClient'])) {
+            $stmn->bindValue(':clientId', $searchCriteria['currentClient'], PDO::PARAM_INT);
+        } else {
+            $stmn->bindValue(':clientId', session('userdata.clientId') ?? '-1', PDO::PARAM_INT);
+        }
+
+        if (isset($searchCriteria['excludeType']) && $searchCriteria['excludeType'] != '') {
+            $stmn->bindValue(':excludeType', $searchCriteria['excludeType'], PDO::PARAM_STR);
+        }
+
+        if (isset($searchCriteria['currentProject']) && $searchCriteria['currentProject'] != '') {
+            $stmn->bindValue(':projectId', $searchCriteria['currentProject'], PDO::PARAM_INT);
+        }
+
+        if (isset($searchCriteria['users']) && $searchCriteria['users'] != '') {
+            foreach (explode(',', $searchCriteria['users']) as $key => $user) {
+                $stmn->bindValue(':users'.$key, $user, PDO::PARAM_STR);
+            }
+        }
+
+        if (isset($searchCriteria['milestone']) && $searchCriteria['milestone'] != '') {
+            foreach (explode(',', $searchCriteria['milestone']) as $key => $milestone) {
+                $stmn->bindValue(':milestone'.$key, $milestone, PDO::PARAM_STR);
+            }
+        }
+
+        if (isset($searchCriteria['type']) && $searchCriteria['type'] != '') {
+            foreach (explode(',', $searchCriteria['type']) as $key => $type) {
+                $stmn->bindValue(':type'.$key, $type, PDO::PARAM_STR);
+            }
+        }
+
+        if (isset($searchCriteria['priority']) && $searchCriteria['priority'] != '') {
+            foreach (explode(',', $searchCriteria['priority']) as $key => $priority) {
+                $stmn->bindValue(':priority'.$key, $priority, PDO::PARAM_STR);
+            }
+        }
+
+        if (isset($searchCriteria['sprint']) && $searchCriteria['sprint'] > 0 && $searchCriteria['sprint'] != 'all') {
+            foreach (explode(',', $searchCriteria['sprint']) as $key => $sprint) {
+                $stmn->bindValue(':sprint'.$key, $sprint, PDO::PARAM_STR);
+            }
+        }
+
+        if (isset($searchCriteria['term']) && $searchCriteria['term'] != '') {
+            $termWild = '%'.$searchCriteria['term'].'%';
+            $stmn->bindValue(':termWild', $termWild, PDO::PARAM_STR);
+            $stmn->bindValue(':termStandard', $searchCriteria['term'], PDO::PARAM_STR);
+        }
+
+        $stmn->bindValue(':requestorId', session('userdata.id') ?? '-1', PDO::PARAM_INT);
+        $stmn->execute();
+
+        $counts = [];
+        foreach ($stmn->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $counts[(string) $row['status']] = (int) $row['total'];
+        }
+        $stmn->closeCursor();
+
+        return $counts;
+    }
+
     public function simpleTicketQuery(?int $userId, ?int $projectId, array $types = []): array|false
     {
 
