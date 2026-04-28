@@ -1,6 +1,25 @@
 leantime.ticketsController = (function () {
 
     //Variables
+    var kanbanTicketStatusListCache = [];
+    var kanbanDndDebugEnabled = window.localStorage && window.localStorage.getItem('kanbanDebug') === '1';
+
+    function getKanbanStatusFromColumn($column) {
+        var classes = ($column.attr('class') || '').split(/\s+/);
+        for (var i = 0; i < classes.length; i++) {
+            if (classes[i].indexOf('status_') === 0) {
+                return classes[i].replace('status_', '');
+            }
+        }
+        return '';
+    }
+
+    function kanbanDebugLog(label, payload) {
+        if (!kanbanDndDebugEnabled) {
+            return;
+        }
+        console.log('[KanbanDnD][' + label + ']', payload);
+    }
 
 
     //Functions
@@ -622,7 +641,8 @@ leantime.ticketsController = (function () {
         jQuery('[data-toggle="tooltip"]').tooltip();
     };
 
-    var initEffortDropdown = function () {
+    var initEffortDropdown = function (scope) {
+        var $scope = scope ? jQuery(scope) : jQuery(document);
 
         var storyPointLabels = {
             '0.5': '< 2min',
@@ -634,7 +654,7 @@ leantime.ticketsController = (function () {
             '13': "XXL"
         };
 
-        jQuery(".effortDropdown .dropdown-menu a").unbind().on("click", function () {
+        $scope.find(".effortDropdown .dropdown-menu a").off("click.ticketEffort").on("click.ticketEffort", function () {
 
             var dataValue = jQuery(this).attr("data-value").split("_");
 
@@ -664,7 +684,8 @@ leantime.ticketsController = (function () {
 
     };
 
-    var initPriorityDropdown = function () {
+    var initPriorityDropdown = function (scope) {
+        var $scope = scope ? jQuery(scope) : jQuery(document);
         // '1' => 'Critical', '2' => 'High', '3' => 'Medium', '4' => 'Low'
         var priorityLabels = {
             '1': 'Critical',
@@ -674,7 +695,7 @@ leantime.ticketsController = (function () {
             '5': "Lowest"
         };
 
-        jQuery(".priorityDropdown .dropdown-menu a").unbind().on("click", function () {
+        $scope.find(".priorityDropdown .dropdown-menu a").off("click.ticketPriority").on("click.ticketPriority", function () {
 
             var dataValue = jQuery(this).attr("data-value").split("_");
 
@@ -711,9 +732,10 @@ leantime.ticketsController = (function () {
 
     };
 
-    var initMilestoneDropdown = function () {
+    var initMilestoneDropdown = function (scope) {
+        var $scope = scope ? jQuery(scope) : jQuery(document);
 
-        jQuery(".milestoneDropdown .dropdown-menu a").unbind().on("click", function () {
+        $scope.find(".milestoneDropdown .dropdown-menu a").off("click.ticketMilestone").on("click.ticketMilestone", function () {
 
                 var dataValue = jQuery(this).attr("data-value").split("_");
                 var dataLabel = jQuery(this).attr('data-label');
@@ -783,9 +805,10 @@ leantime.ticketsController = (function () {
 
     };
 
-    var initUserDropdown = function () {
+    var initUserDropdown = function (scope) {
+        var $scope = scope ? jQuery(scope) : jQuery(document);
 
-        jQuery(".userDropdown .dropdown-menu a").unbind().on("click", function () {
+        $scope.find(".userDropdown .dropdown-menu a").off("click.ticketUser").on("click.ticketUser", function () {
 
                 var dataValue = jQuery(this).attr("data-value").split("_");
                 var dataLabel = jQuery(this).attr('data-label');
@@ -914,9 +937,10 @@ leantime.ticketsController = (function () {
 
     };
 
-    var initDueDateTimePickers = function () {
+    var initDueDateTimePickers = function (scope) {
+        var $scope = scope ? jQuery(scope) : jQuery(document);
         // Reset due date by clicking a button on the task in the dashboard
-        jQuery(".date-picker-form-control .reset-button").on('click', function () {
+        $scope.find(".date-picker-form-control .reset-button").off('click.ticketDueReset').on('click.ticketDueReset', function () {
             // Ticket id for api patch call
             const id = jQuery(this).attr("data-id");
 
@@ -930,7 +954,12 @@ leantime.ticketsController = (function () {
             });
         });
 
-        leantime.dateController.initDatePicker(".quickDueDates, .duedates", function(date, instance) {
+        var $dateInputs = $scope.find(".quickDueDates, .duedates");
+        if ($dateInputs.length === 0) {
+            return;
+        }
+
+        leantime.dateController.initDatePicker($dateInputs, function(date, instance) {
             //TODO: Update to use htmx, this is awful
             var day = instance.currentDay;
             var month = instance.currentMonth;
@@ -1176,14 +1205,19 @@ leantime.ticketsController = (function () {
 
                 let height = 250;
                 let kanbanLaneId = jQuery(this).attr("id");
+                let $columns = jQuery("#"+kanbanLaneId+" .column .contentInner");
 
-                jQuery(this).find(".column .contentInner").each(function () {
-                    if (jQuery(this).height() > height) {
-                        height = jQuery(this).height();
+                // Reset height so measurement includes newly appended cards.
+                $columns.css("height", "auto");
+
+                $columns.each(function () {
+                    let contentHeight = this.scrollHeight || jQuery(this).outerHeight();
+                    if (contentHeight > height) {
+                        height = contentHeight;
                     }
                 });
 
-                jQuery("#"+kanbanLaneId+" .column .contentInner").css("height", height);
+                $columns.css("height", height + "px");
 
             });
 
@@ -1191,13 +1225,139 @@ leantime.ticketsController = (function () {
 
     }
 
+    var initKanbanProgressiveLoading = function () {
+        function updateButtonLabel($button) {
+            var visibleCount = parseInt($button.attr('data-visible-count'), 10) || 0;
+            var totalCount = parseInt($button.attr('data-total-count'), 10) || 0;
+
+            $button.text('Load more (' + visibleCount + '/' + totalCount + ')');
+        }
+
+        function revealNextBatch($button) {
+            if ($button.data('isLoadingBatch')) {
+                return;
+            }
+
+            var batchSize = parseInt($button.attr('data-batch-size'), 10) || 50;
+            var visibleCount = parseInt($button.attr('data-visible-count'), 10) || 0;
+            var totalCount = parseInt($button.attr('data-total-count'), 10) || 0;
+            var statusId = $button.attr('data-status-id');
+            var $column = $button.closest('.contentInner');
+
+            if (! $column.length) {
+                return;
+            }
+
+            var loadedCount = $column.children('.ticketBox.moveable').length;
+            if (loadedCount >= totalCount) {
+                $button.closest('.kanban-load-more-container').hide();
+                return;
+            }
+
+            $button.data('isLoadingBatch', true);
+            $button.prop('disabled', true).text('Loading...');
+
+            var requestData = {};
+            if (window.location.search.length > 1) {
+                window.location.search.substring(1).split('&').forEach(function (param) {
+                    var parts = param.split('=');
+                    if (parts[0]) {
+                        requestData[decodeURIComponent(parts[0])] = decodeURIComponent(parts.slice(1).join('=') || '');
+                    }
+                });
+            }
+
+            requestData.status = statusId;
+            requestData.limit = batchSize;
+
+            var $lastCard = $column.children('.ticketBox.moveable').last();
+            if ($lastCard.length) {
+                requestData.afterSortIndex = parseInt($lastCard.attr('data-kanban-sort-index'), 10) || 0;
+                requestData.afterTicketId = parseInt($lastCard.attr('data-ticket-id'), 10) || 0;
+            }
+
+            jQuery.ajax({
+                type: 'GET',
+                url: leantime.appUrl + '/tickets/kanbanPage/load',
+                data: requestData
+            }).done(function (html) {
+                var $cards = jQuery.trim(html) !== '' ? jQuery(html) : jQuery();
+                if ($cards.length === 0) {
+                    $button.closest('.kanban-load-more-container').hide();
+                    return;
+                }
+
+                $button.closest('.kanban-load-more-container').before($cards);
+                var $board = $button.closest('.sortableTicketList');
+                var boardSelector = '#' + $board.attr('id') + ' .contentInner';
+                var $boardSortableColumns = $board.find('.contentInner.ui-sortable');
+                if ($boardSortableColumns.length > 0) {
+                    $boardSortableColumns.sortable('option', 'connectWith', boardSelector);
+                    $boardSortableColumns.sortable('refresh');
+                    $boardSortableColumns.sortable('refreshPositions');
+                }
+                // Recalculate equalized column heights so cross-column drop zones
+                // include newly loaded cards, not just the initial 50.
+                setUpKanbanColumns();
+                visibleCount = Math.min(totalCount, loadedCount + $cards.filter('.ticketBox').length);
+                $button.attr('data-visible-count', visibleCount);
+                updateButtonLabel($button);
+                countTickets();
+
+                initUserDropdown($cards);
+                initMilestoneDropdown($cards);
+                initDueDateTimePickers($cards);
+                initEffortDropdown($cards);
+                initPriorityDropdown($cards);
+
+                if (visibleCount >= totalCount) {
+                    $button.closest('.kanban-load-more-container').hide();
+                }
+            }).always(function () {
+                $button.data('isLoadingBatch', false);
+                $button.prop('disabled', false);
+                updateButtonLabel($button);
+            });
+        }
+
+        jQuery('.kanban-load-more').off('click.kanbanLoadMore').on('click.kanbanLoadMore', function () {
+            revealNextBatch(jQuery(this));
+        });
+
+        if ('IntersectionObserver' in window) {
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) {
+                        return;
+                    }
+
+                    var $button = jQuery(entry.target);
+                    if ($button.is(':visible')) {
+                        revealNextBatch($button);
+                    }
+                });
+            }, {
+                root: null,
+                threshold: 0.1,
+                rootMargin: '0px 0px 120px 0px'
+            });
+
+            jQuery('.kanban-load-more').each(function () {
+                observer.observe(this);
+            });
+        }
+    };
+
     var initTicketKanban = function (ticketStatusListParameter) {
 
         var ticketStatusList = ticketStatusListParameter;
+        kanbanTicketStatusListCache = Array.isArray(ticketStatusListParameter) ? ticketStatusListParameter : [];
 
-        jQuery(".sortableTicketList.kanbanBoard .ticketBox").hover(function () {
+        jQuery(".sortableTicketList.kanbanBoard .ticketBox")
+            .off("mouseenter.ticketHover mouseleave.ticketHover")
+            .on("mouseenter.ticketHover", function () {
             jQuery(this).css("background", "var(--kanban-card-hover)");
-        },function () {
+        }).on("mouseleave.ticketHover", function () {
             jQuery(this).css("background", "var(--kanban-card-bg)");
         });
 
@@ -1206,24 +1366,56 @@ leantime.ticketsController = (function () {
         jQuery(".sortableTicketList").each(function () {
 
             var currentElement = this;
+            var $sortableColumns = jQuery(currentElement).find(".contentInner");
 
-            jQuery(currentElement).find(".contentInner").sortable({
-                connectWith: ".contentInner",
+            $sortableColumns.each(function () {
+                if (jQuery(this).hasClass('ui-sortable')) {
+                    jQuery(this).sortable('destroy');
+                }
+            });
+
+            var boardSelector = '#' + jQuery(currentElement).attr('id') + ' .contentInner';
+
+            $sortableColumns.sortable({
+                connectWith: boardSelector,
                 items: "> .moveable",
-                tolerance: 'intersect',
+                tolerance: 'pointer',
                 placeholder: "ui-state-highlight",
                 forcePlaceholderSize: true,
+                dropOnEmpty: true,
                 cancel: ".portlet-toggle,:input,a,input",
                 distance: 10,
 
                 start: function (event, ui) {
+                    var $sourceColumn = ui.item.closest('.contentInner');
+                    ui.item.data('kanban-source-status', getKanbanStatusFromColumn($sourceColumn));
                     ui.item.addClass('tilt');
                     tilt_direction(ui.item);
+                    kanbanDebugLog('start', {
+                        ticketId: ui.item.attr('id'),
+                        sourceStatus: ui.item.data('kanban-source-status')
+                    });
+                },
+                receive: function (event, ui) {
+                    var $targetColumn = jQuery(this);
+                    kanbanDebugLog('receive', {
+                        ticketId: ui.item.attr('id'),
+                        sourceStatus: ui.item.data('kanban-source-status') || '',
+                        targetStatus: getKanbanStatusFromColumn($targetColumn)
+                    });
                 },
                 stop: function (event, ui) {
                     ui.item.removeClass("tilt");
                     jQuery("html").unbind('mousemove', ui.item.data("move_handler"));
                     ui.item.removeData("move_handler");
+
+                    var $targetColumn = ui.item.closest('.contentInner');
+                    kanbanDebugLog('stop', {
+                        ticketId: ui.item.attr('id'),
+                        sourceStatus: ui.item.data('kanban-source-status') || '',
+                        targetStatus: getKanbanStatusFromColumn($targetColumn)
+                    });
+                    ui.item.removeData('kanban-source-status');
 
                     countTickets();
 
@@ -1755,6 +1947,7 @@ leantime.ticketsController = (function () {
         initTicketTabs:initTicketTabs,
         initTicketSearchSubmit:initTicketSearchSubmit,
         initTicketKanban:initTicketKanban,
+        initKanbanProgressiveLoading:initKanbanProgressiveLoading,
         initTicketsTable:initTicketsTable,
         initEffortDropdown:initEffortDropdown,
         initPriorityDropdown:initPriorityDropdown,
