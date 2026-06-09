@@ -156,7 +156,19 @@ leantime.kanbanSearch = (function () {
         return suggestions.slice(0, MAX_SUGGESTIONS);
     }
 
+    function restoreColumnCounts() {
+        document.querySelectorAll('.widgettitle .count[data-total-count]').forEach(function (countEl) {
+            const total = parseInt(countEl.getAttribute('data-total-count'), 10) || 0;
+            countEl.textContent = total;
+        });
+    }
+
     function updateColumnCounts() {
+        if (!normalize(currentSearchQuery)) {
+            restoreColumnCounts();
+            return;
+        }
+
         const totals = [];
         document.querySelectorAll('.sortableTicketList').forEach(function (list) {
             const columns = list.querySelectorAll('.column');
@@ -205,7 +217,7 @@ leantime.kanbanSearch = (function () {
             cards.forEach(function (card) {
                 card.element.classList.remove(HIDDEN_CLASS);
             });
-            updateColumnCounts();
+            restoreColumnCounts();
             return;
         }
 
