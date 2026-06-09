@@ -21,34 +21,47 @@ leantime.ticketsController = (function () {
         console.log('[KanbanDnD][' + label + ']', payload);
     }
 
+    function getKanbanCountElement(statusId) {
+        return jQuery(".widgettitle .count").filter(function () {
+            return String(jQuery(this).attr('data-status-id')) === String(statusId);
+        });
+    }
+
+    function setKanbanColumnCount(statusId, value) {
+        var count = Math.max(0, parseInt(value, 10) || 0);
+        var $count = getKanbanCountElement(statusId);
+
+        $count.text(count);
+        $count.attr('data-total-count', count);
+    }
+
+    function adjustKanbanColumnCount(statusId, delta) {
+        var $count = getKanbanCountElement(statusId);
+
+        if (! $count.length) {
+            return;
+        }
+
+        var current = parseInt($count.attr('data-total-count'), 10);
+        if (isNaN(current)) {
+            current = parseInt($count.text(), 10) || 0;
+        }
+
+        setKanbanColumnCount(statusId, current + delta);
+    }
+
+    function restoreKanbanColumnCounts() {
+        jQuery(".widgettitle .count[data-total-count]").each(function () {
+            var total = parseInt(jQuery(this).attr('data-total-count'), 10) || 0;
+            jQuery(this).text(total);
+        });
+    }
+
 
     //Functions
     function countTickets()
     {
-
-        let ticketCounts = [];
-        jQuery(".sortableTicketList").each(function (indexList) {
-            jQuery(this).find(".column").each(function (indexCol) {
-
-                if (ticketCounts[indexCol] === undefined) {
-                    ticketCounts[indexCol] = 0;
-                }
-
-                var counting = jQuery(this).find('.moveable:visible').length;
-                ticketCounts[indexCol] += counting;
-
-            });
-
-        });
-
-        jQuery(".widgettitle .count").each(function (index) {
-            var value = ticketCounts[index];
-            if (value === undefined) {
-                value = 0;
-            }
-            jQuery(this).text(value);
-        });
-
+        restoreKanbanColumnCounts();
     }
 
     /* Legacy kanban search function - removed but kept as comment for reference
@@ -1410,14 +1423,21 @@ leantime.ticketsController = (function () {
                     ui.item.removeData("move_handler");
 
                     var $targetColumn = ui.item.closest('.contentInner');
+                    var sourceStatus = ui.item.data('kanban-source-status') || '';
+                    var targetStatus = getKanbanStatusFromColumn($targetColumn);
                     kanbanDebugLog('stop', {
                         ticketId: ui.item.attr('id'),
-                        sourceStatus: ui.item.data('kanban-source-status') || '',
-                        targetStatus: getKanbanStatusFromColumn($targetColumn)
+                        sourceStatus: sourceStatus,
+                        targetStatus: targetStatus
                     });
                     ui.item.removeData('kanban-source-status');
 
-                    countTickets();
+                    if (sourceStatus !== '' && targetStatus !== '' && sourceStatus !== targetStatus) {
+                        adjustKanbanColumnCount(sourceStatus, -1);
+                        adjustKanbanColumnCount(targetStatus, 1);
+                    } else {
+                        countTickets();
+                    }
 
                     var statusPostData = {
                         action: "kanbanSort",
