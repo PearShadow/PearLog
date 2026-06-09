@@ -146,6 +146,20 @@ $tpl->dispatchTplEvent('filters.beforeLefthandSectionClose');
             $allTickets = $allTicketGroups['all']['items'];
         }
 ?>
+        <?php
+        $statusCounts = $tpl->get('kanbanStatusCounts') ?: [];
+        if (empty($statusCounts)) {
+            foreach ($allTicketGroups as $ticketGroup) {
+                foreach ($ticketGroup['items'] as $ticketItem) {
+                    $statusKey = (string) ($ticketItem['status'] ?? '');
+                    if (! isset($statusCounts[$statusKey])) {
+                        $statusCounts[$statusKey] = 0;
+                    }
+                    $statusCounts[$statusKey]++;
+                }
+            }
+        }
+?>
         <div class="" style="
             display: flex;
             position: sticky;
@@ -171,7 +185,12 @@ $tpl->dispatchTplEvent('filters.beforeLefthandSectionClose');
                         </div>
                     <?php } ?>
 
-                    <strong class="count">0</strong>
+                    <?php $columnTotal = (int) ($statusCounts[(string) $key] ?? 0); ?>
+                    <strong
+                        class="count"
+                        data-status-id="<?= $tpl->escape((string) $key) ?>"
+                        data-total-count="<?= $columnTotal ?>"
+                    ><?= $columnTotal ?></strong>
                     <?php $tpl->e($statusRow['name']); ?>
 
                 </h4>
@@ -206,16 +225,6 @@ $tpl->dispatchTplEvent('filters.beforeLefthandSectionClose');
         <?php foreach ($allTicketGroups as $group) {?>
              <?php
         $allTickets = $group['items'];
-        $statusCounts = $tpl->get('kanbanStatusCounts') ?: [];
-        if (empty($statusCounts)) {
-            foreach ($allTickets as $ticketItem) {
-                $statusKey = (string) ($ticketItem['status'] ?? '');
-                if (! isset($statusCounts[$statusKey])) {
-                    $statusCounts[$statusKey] = 0;
-                }
-                $statusCounts[$statusKey]++;
-            }
-        }
             ?>
 
             <?php if ($group['label'] != 'all') { ?>
