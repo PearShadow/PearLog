@@ -33,6 +33,7 @@ console.log('[KanbanSearch] Submodule script starting...');
 (function () {
     var baseUrl = '<?= BASE_URL ?>';
     var initialQuery = <?= json_encode($initialSearchTerm) ?>;
+    var enterHint = <?= json_encode($tpl->__('label.kanban_search_enter_hint')) ?>;
 
     console.log('[KanbanSearch] Base URL:', baseUrl);
     console.log('[KanbanSearch] Initial query:', initialQuery);
@@ -94,7 +95,8 @@ console.log('[KanbanSearch] Submodule script starting...');
                 leantime.kanbanSearch.init({
                     inputSelector: '#kanbanSearch',
                     wrapperSelector: '#kanbanSearchWrapper',
-                    initialQuery: initialQuery
+                    initialQuery: initialQuery,
+                    enterHint: enterHint
                 });
                 console.log('[KanbanSearch] Init completed');
                 return;
