@@ -30,7 +30,9 @@ leantime.modernSearch = (function () {
             onSelect = null,
             onSearch = null,
             debounceDelay = 300,
-            autocompleteDelay = 150
+            autocompleteDelay = 150,
+            showHintWhenEmpty = false,
+            emptyStateHint = 'Press Enter after typing to search all tickets, not only the loaded cards',
         } = config;
 
         const input = document.querySelector(inputSelector);
@@ -71,6 +73,17 @@ leantime.modernSearch = (function () {
             suggestions = getSuggestions(query);
 
             if (suggestions.length === 0) {
+                if (showHintWhenEmpty && query.trim() !== '') {
+                    dropdown.innerHTML =
+                        '<div class="modern-search-empty-hint">' + emptyStateHint + '</div>' +
+                        '<div class="modern-search-footer">' +
+                        '<kbd>Enter</kbd> to search' +
+                        '</div>';
+                    dropdown.classList.add('active');
+                    selectedIndex = -1;
+                    return;
+                }
+
                 dropdown.classList.remove('active');
                 return;
             }
