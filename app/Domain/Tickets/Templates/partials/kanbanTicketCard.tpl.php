@@ -8,7 +8,7 @@ $isFirstColumn = $key === $columnKeys[0];
 $isLastColumn = $key === end($columnKeys);
 ?>
 <div
-    class="ticketBox moveable container priority-border-<?= $row['priority']?>"
+    class="ticketBox moveable container priority-border-<?= $row['priority']?> <?= ! empty($row['pinned']) ? 'pinned-ticket' : '' ?>"
     id="ticket_<?php echo $row['id']; ?>"
     data-ticket-id="<?= $row['id']; ?>"
     data-headline="<?= $tpl->escape($row['headline']); ?>"
@@ -16,6 +16,7 @@ $isLastColumn = $key === end($columnKeys);
     data-tags="<?= $tpl->escape($tagsText); ?>"
     data-editor-name="<?= $tpl->escape($editorFullName); ?>"
     data-editor-id="<?= $tpl->escape($row['editorId'] ?? ''); ?>"
+    data-kanban-pinned-rank="<?= (int) ($row['pinnedRank'] ?? (! empty($row['pinned']) ? 0 : 1)); ?>"
     data-kanban-sort-index="<?= (int) ($row['kanbanSortIndex'] ?? 0); ?>"
 >
     <div class="row">

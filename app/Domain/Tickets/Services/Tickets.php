@@ -765,6 +765,10 @@ class Tickets
         $searchCriteria['status'] = (string) $status;
         $searchCriteria['afterSortIndex'] = isset($params['afterSortIndex']) ? (int) $params['afterSortIndex'] : null;
         $searchCriteria['afterTicketId'] = isset($params['afterTicketId']) ? (int) $params['afterTicketId'] : null;
+        $searchCriteria['afterPinnedRank'] = isset($params['afterPinnedRank']) ? (int) $params['afterPinnedRank'] : null;
+        $searchCriteria['pinnedTicketIds'] = session()->exists('currentProject')
+            ? $this->getPinnedTickets((int) session('currentProject'))
+            : [];
 
         $tickets = $this->ticketRepository->getKanbanPageBySearchCriteria(
             $searchCriteria,
