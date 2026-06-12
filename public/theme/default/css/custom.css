@@ -8,6 +8,7 @@ body.colorScheme-grayscale1.colorMode-light h6,
 body.colorScheme-grayscale1.colorMode-light p,
 body.colorScheme-grayscale1.colorMode-light label,
 body.colorScheme-grayscale1.colorMode-light select,
+body.colorScheme-grayscale1.colorMode-light .project-dropdown-toggle,
 body.colorScheme-grayscale1.colorMode-light textarea  {
     color: black !important;
 }
@@ -64,6 +65,7 @@ body.colorScheme-grayscale2.colorMode-light a,
 body.colorScheme-grayscale2.colorMode-light li,
 body.colorScheme-grayscale2.colorMode-light input,
 body.colorScheme-grayscale2.colorMode-light select,
+body.colorScheme-grayscale2.colorMode-light .project-dropdown-toggle,
 body.colorScheme-grayscale2.colorMode-light textarea,
 body.colorScheme-grayscale2.colorMode-dark li,
 body.colorScheme-grayscale2.colorMode-light .selectableContent
@@ -100,6 +102,7 @@ body.colorScheme-themeDefault.colorMode-light th,
 body.colorScheme-themeDefault.colorMode-light label,
 body.colorScheme-themeDefault.colorMode-light li,
 body.colorScheme-themeDefault.colorMode-light select,
+body.colorScheme-themeDefault.colorMode-light .project-dropdown-toggle,
 body.colorScheme-themeDefault.colorMode-light textarea,
 body.colorScheme-themeDefault.colorMode-light .selectableContent {
     color: #006E9F !important;
@@ -119,8 +122,26 @@ body.colorScheme-themeDefault.colorMode-dark a,
 body.colorScheme-themeDefault.colorMode-dark label,
 body.colorScheme-themeDefault.colorMode-dark input,
 body.colorScheme-themeDefault.colorMode-dark select,
+body.colorScheme-themeDefault.colorMode-dark .project-dropdown-toggle,
 body.colorScheme-themeDefault.colorMode-dark textarea,
 body.colorScheme-themeDefault.colorMode-dark .selectableContent {
+    color: #00B3FF !important;
+}
+
+body.colorScheme-themeDefault.colorMode-light .project-checkbox-dropdown,
+body.colorScheme-themeDefault.colorMode-light .project-checkbox-dropdown label {
+    background-color: var(--secondary-background) !important;
+    color: #006E9F !important;
+}
+
+body.colorScheme-themeDefault.colorMode-light .project-checkbox-label:hover {
+    background-color: var(--col-hover-bg) !important;
+    color: #006E9F !important;
+}
+
+body.colorScheme-themeDefault.colorMode-dark .project-checkbox-dropdown,
+body.colorScheme-themeDefault.colorMode-dark .project-checkbox-dropdown label {
+    background-color: var(--secondary-background) !important;
     color: #00B3FF !important;
 }
 
@@ -135,4 +156,35 @@ body.colorScheme-grayscale1.colorMode-light .project-checkbox-dropdown label {
 
 body.colorScheme-grayscale1.colorMode-light .project-checkbox-dropdown label:first-child {
     background-color: #f7f9fc !important;
+}
+
+body.colorMode-dark .project-dropdown-toggle,
+body.colorMode-dark .project-checkbox-dropdown,
+body.colorMode-dark .project-checkbox-dropdown label {
+    background-color: var(--secondary-background) !important;
+    color: var(--primary-font-color) !important;
+}
+
+body.colorMode-dark .project-checkbox-label:hover {
+    background-color: var(--dropdown-link-hover-bg) !important;
+    color: var(--dropdown-link-hover-color) !important;
+}
+
+.maincontentinner .project-dropdown-toggle {
+    background-color: var(--secondary-background) !important;
+    border: 1px solid var(--main-border-color) !important;
+    border-radius: var(--input-radius) !important;
+    box-shadow: var(--input-shadow) !important;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: 21px !important;
+    padding: var(--input-padding) !important;
+    height: auto !important;
+}
+
+.maincontentinner .project-checkbox-dropdown {
+    background-color: var(--secondary-background) !important;
+    border: 1px solid var(--main-border-color) !important;
+    border-radius: var(--input-radius) !important;
+    box-shadow: var(--input-shadow) !important;
 }
