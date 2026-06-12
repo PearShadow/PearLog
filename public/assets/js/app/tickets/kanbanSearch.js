@@ -205,6 +205,20 @@ leantime.kanbanSearch = (function () {
         }
     }
 
+    function submitServerSearch(query) {
+        const normalizedQuery = String(query || '').trim();
+        const url = new URL(window.location.href);
+
+        if (normalizedQuery) {
+            url.searchParams.set('term', normalizedQuery);
+        } else {
+            url.searchParams.delete('term');
+        }
+
+        url.hash = '';
+        window.location.href = url.toString();
+    }
+
     function applyFilter(type, query) {
         // Rebuild searchable dataset so Enter-search includes lazy-loaded cards.
         collectCards();
@@ -252,7 +266,10 @@ leantime.kanbanSearch = (function () {
             if (input.value.trim() === '') {
                 currentSearchType = 'all';
                 currentSearchQuery = '';
-                applyFilter('all', '');
+                cards.forEach(function (card) {
+                    card.element.classList.remove(HIDDEN_CLASS);
+                });
+                restoreColumnCounts();
             }
         });
     }
@@ -278,8 +295,7 @@ leantime.kanbanSearch = (function () {
                 wrapper.classList.remove('has-value');
                 currentSearchType = 'all';
                 currentSearchQuery = '';
-                applyFilter('all', '');
-                input.focus();
+                submitServerSearch('');
             });
         }
 
@@ -287,6 +303,8 @@ leantime.kanbanSearch = (function () {
             inputSelector: inputSelector,
             containerSelector: wrapperSelector,
             getSuggestions: buildSuggestions,
+            showHintWhenEmpty: true,
+            emptyStateHint: options.enterHint || 'Press Enter after typing to search all tickets, not only the loaded cards',
             onSelect: function (item) {
                 if (!item) {
                     return;
@@ -295,19 +313,18 @@ leantime.kanbanSearch = (function () {
                 wrapper.classList.add('has-value');
                 currentSearchType = item.filterType || item.type || 'all';
                 currentSearchQuery = item.value || '';
-                applyFilter(currentSearchType, currentSearchQuery);
+                submitServerSearch(currentSearchQuery);
             },
             onSearch: function (query) {
                 currentSearchType = 'all';
                 currentSearchQuery = query || '';
-                applyFilter('all', currentSearchQuery);
+                submitServerSearch(currentSearchQuery);
             },
         });
 
         if (options.initialQuery && String(options.initialQuery).trim() !== '') {
             input.value = options.initialQuery;
             wrapper.classList.add('has-value');
-            applyFilter('all', options.initialQuery);
         } else {
             applyFilter('all', '');
         }
