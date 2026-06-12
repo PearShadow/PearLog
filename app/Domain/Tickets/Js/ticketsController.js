@@ -1285,6 +1285,10 @@ leantime.ticketsController = (function () {
 
             var $lastCard = $column.children('.ticketBox.moveable').last();
             if ($lastCard.length) {
+                requestData.afterPinnedRank = parseInt($lastCard.attr('data-kanban-pinned-rank'), 10);
+                if (isNaN(requestData.afterPinnedRank)) {
+                    requestData.afterPinnedRank = 1;
+                }
                 requestData.afterSortIndex = parseInt($lastCard.attr('data-kanban-sort-index'), 10) || 0;
                 requestData.afterTicketId = parseInt($lastCard.attr('data-ticket-id'), 10) || 0;
             }

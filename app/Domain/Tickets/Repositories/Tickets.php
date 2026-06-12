@@ -638,10 +638,19 @@ class Tickets
 
     public function getKanbanPageBySearchCriteria(array $searchCriteria, int $limit, int $offset = 0): array
     {
+        $pinnedTicketIds = array_values(array_unique(array_map('intval', $searchCriteria['pinnedTicketIds'] ?? [])));
+        $pinnedRankExpression = '1';
+        if (! empty($pinnedTicketIds)) {
+            $pinnedIdIn = DbCore::arrayToPdoBindingString('pinnedTicket', count($pinnedTicketIds));
+            $pinnedRankExpression = "CASE WHEN zp_tickets.id IN({$pinnedIdIn}) THEN 0 ELSE 1 END";
+        }
+        $kanbanCursorCondition = '';
+
         $query = "
             SELECT
                 zp_tickets.id,
-                zp_tickets.kanbanSortIndex
+                zp_tickets.kanbanSortIndex,
+                {$pinnedRankExpression} AS pinnedRank
             FROM
                 zp_tickets
             LEFT JOIN zp_projects ON zp_tickets.projectId = zp_projects.id
@@ -712,23 +721,33 @@ class Tickets
         }
 
         if (
-            isset($searchCriteria['afterSortIndex'], $searchCriteria['afterTicketId'])
+            isset($searchCriteria['afterPinnedRank'], $searchCriteria['afterSortIndex'], $searchCriteria['afterTicketId'])
+            && $searchCriteria['afterPinnedRank'] !== null
             && $searchCriteria['afterSortIndex'] !== null
             && $searchCriteria['afterTicketId'] !== null
         ) {
-            $query .= ' AND (zp_tickets.kanbanSortIndex > :afterSortIndex OR (zp_tickets.kanbanSortIndex = :afterSortIndex AND zp_tickets.id < :afterTicketId))';
+            $kanbanCursorCondition = '
+                HAVING (
+                    pinnedRank > :afterPinnedRank
+                    OR (pinnedRank = :afterPinnedRank AND kanbanSortIndex > :afterSortIndex)
+                    OR (pinnedRank = :afterPinnedRank AND kanbanSortIndex = :afterSortIndex AND id < :afterTicketId)
+                )
+            ';
         }
 
-        $query .= '
+        $query .= "
             GROUP BY zp_tickets.id
-            ORDER BY zp_tickets.kanbanSortIndex ASC, zp_tickets.id DESC
+            {$kanbanCursorCondition}
+            ORDER BY pinnedRank ASC, zp_tickets.kanbanSortIndex ASC, zp_tickets.id DESC
             LIMIT :limit
-        ';
+        ";
 
         $query = "
             SELECT
                 page.id,
                 page.kanbanSortIndex,
+                page.pinnedRank,
+                IF(page.pinnedRank = 0, 1, 0) AS pinned,
                 ticket.headline,
                 ticket.description,
                 ticket.date,
@@ -775,7 +794,7 @@ class Tickets
             LEFT JOIN zp_user AS editor ON ticket.editorId = editor.id
             LEFT JOIN zp_tickets AS milestone ON ticket.milestoneid = milestone.id AND ticket.milestoneid > 0 AND milestone.type = 'milestone'
             LEFT JOIN zp_tickets AS parent ON ticket.dependingTicketId = parent.id
-            ORDER BY page.kanbanSortIndex ASC, ticket.id DESC
+            ORDER BY page.pinnedRank ASC, page.kanbanSortIndex ASC, ticket.id DESC
         ";
 
         $stmn = $this->db->database->prepare($query);
@@ -849,12 +868,18 @@ class Tickets
         }
 
         if (
-            isset($searchCriteria['afterSortIndex'], $searchCriteria['afterTicketId'])
+            isset($searchCriteria['afterPinnedRank'], $searchCriteria['afterSortIndex'], $searchCriteria['afterTicketId'])
+            && $searchCriteria['afterPinnedRank'] !== null
             && $searchCriteria['afterSortIndex'] !== null
             && $searchCriteria['afterTicketId'] !== null
         ) {
+            $stmn->bindValue(':afterPinnedRank', $searchCriteria['afterPinnedRank'], PDO::PARAM_INT);
             $stmn->bindValue(':afterSortIndex', $searchCriteria['afterSortIndex'], PDO::PARAM_INT);
             $stmn->bindValue(':afterTicketId', $searchCriteria['afterTicketId'], PDO::PARAM_INT);
+        }
+
+        foreach ($pinnedTicketIds as $key => $ticketId) {
+            $stmn->bindValue(':pinnedTicket'.$key, $ticketId, PDO::PARAM_INT);
         }
 
         $stmn->bindValue(':requestorId', session('userdata.id') ?? '-1', PDO::PARAM_INT);
