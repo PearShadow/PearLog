@@ -221,7 +221,7 @@ function restoreFilters() {
 
 <!--this is MAIN content-->
 <div class="maincontent">
-    <div class="maincontentinner" style="overflow-x:auto;">
+    <div class="maincontentinner">
         <div style="float:left;">
             <?php echo $tpl->displayNotification() ?>
             <button type="submit" form="form" formaction="<?= BASE_URL ?>/timesheets/slackMonthlyReportController/sendCsvFromUsersProfilesWhichHaveTickboxTrue" class="dt-button" id="exportToSlackBtn" style="padding: 4px 14px;">
@@ -259,7 +259,7 @@ function restoreFilters() {
                     <td style="vertical-align: top;">
                         <label><?php echo $tpl->__('label.project'); ?></label>
                         <div class="project-dropdown-container" style="position: relative; width: 200px;">
-                            <button type="button" class="project-dropdown-toggle" style="width: 100%; padding: 4px 14px; text-align: left; background: #fff; border: 1px solid #ccc; cursor: pointer; border-radius: 20px; font-size: 14px; line-height: 20px; height: 30px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #555; box-sizing: border-box;" onclick="document.getElementById('projectCheckboxDropdown').style.display = document.getElementById('projectCheckboxDropdown').style.display === 'none' ? 'block' : 'none';">
+                            <button type="button" class="project-dropdown-toggle" style="width: 100%; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; box-sizing: border-box;" onclick="document.getElementById('projectCheckboxDropdown').style.display = document.getElementById('projectCheckboxDropdown').style.display === 'none' ? 'block' : 'none';">
                                 <span class="selected-count" id="projectSelectedCount" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     <?php
                                     $projectFilter = $tpl->get('projectFilter');
@@ -294,8 +294,8 @@ function restoreFilters() {
                                 </span>
                                 <i class="fa fa-chevron-down" style="font-size: 10px; flex-shrink: 0;"></i>
                             </button>
-                            <div id="projectCheckboxDropdown" class="project-checkbox-dropdown" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #d0d5dd; border-radius: 14px; width: 100%; max-height: 250px; overflow-y: auto; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1); margin-top: 6px;">
-                                <label style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #eef2f7; background: #f7f9fc; font-weight: bold; border-top-left-radius: 14px; border-top-right-radius: 14px; cursor: pointer;" onclick="event.stopPropagation();">
+                            <div id="projectCheckboxDropdown" class="project-checkbox-dropdown" style="display: none; position: absolute; z-index: 1000; width: 100%; max-height: 250px; overflow-y: auto; margin-top: 6px;">
+                                <label style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; font-weight: bold; cursor: pointer;" onclick="event.stopPropagation();">
                                     <input type="checkbox" name="project[]" value="-1" class="project-checkbox-all" id="projectCheckboxAll" style="margin: 0; vertical-align: middle;"
                                         onchange="if(this.checked) { document.querySelectorAll('.project-checkbox').forEach(function(cb){cb.checked=false;}); } updateProjectCountInline(); document.getElementById('form').submit();"
                                         <?php if (!is_array($tpl->get('projectFilter')) || $tpl->get('projectFilter') == -1) {
@@ -307,7 +307,7 @@ function restoreFilters() {
                                 $projectFilter = $tpl->get('projectFilter');
                                 $selectedProjects = is_array($projectFilter) ? $projectFilter : ($projectFilter != -1 ? [$projectFilter] : []);
                                 foreach ($tpl->get('allProjects') as $project) { ?>
-                                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; color: #333; transition: background-color 0.2s ease;" class="project-checkbox-label" onmouseover="this.style.background='#eef2f7'; this.style.color='#333';" onmouseout="this.style.background='white'; this.style.color='#333';" onclick="event.stopPropagation();">
+                                    <label style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; transition: background-color 0.2s ease;" class="project-checkbox-label" onclick="event.stopPropagation();">
                                         <input type="checkbox" name="project[]" value="<?= $project['id'] ?>" class="project-checkbox" style="margin: 0; vertical-align: middle;"
                                             onchange="if(this.checked) { document.getElementById('projectCheckboxAll').checked=false; } else { var anyChecked = document.querySelectorAll('.project-checkbox:checked').length > 0; if(!anyChecked) { document.getElementById('projectCheckboxAll').checked=true; } } updateProjectCountInline(); document.getElementById('form').submit();"
                                             <?php if (is_array($selectedProjects) && in_array($project['id'], $selectedProjects)) {
@@ -421,7 +421,7 @@ if ($tpl->get('paid') == '1') {
                 </tr>
             </table>
             </div>
-            <div>
+            <div style="overflow-x:auto;">
             <table cellpadding="0" cellspacing="0" border="0" class="table table-bordered display" id="allTimesheetsTable" data-hours-format="<?= $tpl->escape($hoursFormat); ?>">
                 <colgroup>
                       <col class="con0" width="100px"/>
